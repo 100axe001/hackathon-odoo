@@ -22,7 +22,14 @@ export function SubscriptionsScreen() {
     <Transition keyProp="subscriptions">
       <PageHeader
         title="Subscriptions"
-        action={<Button variant="secondary">+ New Plan (Admin)</Button>}
+        action={
+          <Button
+            variant="secondary"
+            onClick={() => navigate("/admin/subscription-plans")}
+          >
+            + New Plan (Admin)
+          </Button>
+        }
       />
       <div className="flex gap-3 mb-4">
         <StatPill label="Active" count={active} tone="success" />

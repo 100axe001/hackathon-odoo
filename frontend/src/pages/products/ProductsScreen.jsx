@@ -19,7 +19,11 @@ export function ProductsScreen() {
     <Transition keyProp="products">
       <PageHeader
         title="Products"
-        action={<Button variant="primary">+ New Product</Button>}
+        action={
+          <Button variant="primary" onClick={() => navigate("/products/p1")}>
+            + New Product
+          </Button>
+        }
       />
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard label="Total Products" value={data.length} />

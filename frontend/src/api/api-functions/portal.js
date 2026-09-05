@@ -2,6 +2,15 @@ import { apiGet, apiSend } from "../client";
 import { portalEndpoints } from "../apiEndpoints";
 import { MOCK_PORTAL_QUOTATION } from "../mocks";
 
+// Expected: [{id, number, status, total}]
+export async function loadPortalQuotations() {
+  try {
+    return await apiGet(portalEndpoints.list);
+  } catch {
+    return [];
+  }
+}
+
 // Expected: { id, number, customer, status, total, lines: [...], comments: [...] }
 export async function loadPortalQuotation(id) {
   try {

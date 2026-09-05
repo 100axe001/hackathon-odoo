@@ -28,7 +28,8 @@ export function LoginScreen() {
           ? await login(email, password)
           : await signup(email, password, fullName);
       signIn(user);
-      navigate("/dashboard");
+      // A customer has no internal screens, so send them to their portal.
+      navigate(user.role === "CUSTOMER" ? "/portal" : "/dashboard");
     } catch {
       // client.js throws on a non-2xx, so this covers wrong credentials, a
       // duplicate email, and the API being down.
@@ -114,6 +115,11 @@ export function LoginScreen() {
             {tab === "Log In" && (
               <button
                 type="button"
+                onClick={() =>
+                  setError(
+                    "Password reset is not part of this build - ask an admin to reset it.",
+                  )
+                }
                 className="text-sm text-left"
                 style={{ color: C.muted }}
               >

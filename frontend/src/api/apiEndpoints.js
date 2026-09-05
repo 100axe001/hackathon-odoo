@@ -65,6 +65,7 @@ export const adminEndpoints = {
 };
 
 export const portalEndpoints = {
+  list: "/portal/quotations",
   quotation: (id) => `/portal/quotations/${enc(id)}`,
   negotiate: (id) => `/portal/quotations/${enc(id)}/negotiate`,
   confirm: (id) => `/portal/quotations/${enc(id)}/confirm`,
@@ -75,4 +76,8 @@ export const authEndpoints = {
   signup: "/auth/signup",
   logout: "/auth/logout",
   me: "/auth/me",
+};
+
+export const reportEndpoints = {
+  summary: "/reports",
 };

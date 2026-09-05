@@ -23,6 +23,7 @@ import { ProductDetailScreen } from "@/pages/products/ProductDetailScreen";
 import { DiscountConfigScreen } from "@/pages/admin/DiscountConfigScreen";
 import { WarehousesScreen } from "@/pages/admin/WarehousesScreen";
 import { SubscriptionPlansScreen } from "@/pages/admin/SubscriptionPlansScreen";
+import { PortalIndexScreen } from "@/pages/portal/PortalIndexScreen";
 import { PortalNegotiationScreen } from "@/pages/portal/PortalNegotiationScreen";
 
 const INTERNAL = ["SALES_REP", "SALES_MANAGER", "FINANCE", "ADMIN"];
@@ -74,7 +75,7 @@ export const router = createBrowserRouter([
         children: [
           {
             path: "/portal",
-            element: <Navigate to="/portal/quotations/q3" replace />,
+            element: <PortalIndexScreen />,
           },
           {
             path: "/portal/quotations/:id",

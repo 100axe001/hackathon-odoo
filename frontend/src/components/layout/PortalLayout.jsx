@@ -1,7 +1,6 @@
 import { Outlet } from "react-router-dom";
 import { useState } from "react";
 import { PortalNav } from "@/components/layout/PortalNav";
-import { PortalDevSwitch } from "@/components/layout/PortalDevSwitch";
 import { C } from "@/constants/theme";
 
 // Customer shell. Deliberately shares nothing with AppLayout - no sidebar, no
@@ -18,7 +17,6 @@ export function PortalLayout() {
           <Outlet />
         </div>
       </div>
-      <PortalDevSwitch />
     </div>
   );
 }

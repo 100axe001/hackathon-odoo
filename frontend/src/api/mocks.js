@@ -965,3 +965,21 @@ export const MOCK_SUBSCRIPTION_PLANS = [
     proration_enabled: false,
   },
 ];
+
+export const MOCK_REPORTS = {
+  quotes_created: 18,
+  avg_approval_hours: 6.4,
+  top_product: "Extended Warranty",
+  pipeline_value: 611200,
+  by_status: [
+    { status: "Draft", count: 3, value: 103550 },
+    { status: "Pending Approval", count: 4, value: 180650 },
+    { status: "Approved", count: 4, value: 159300 },
+    { status: "Negotiation", count: 4, value: 161800 },
+    { status: "Confirmed", count: 3, value: 105700 },
+  ],
+  by_rep: [
+    { rep: "Alex Turner", quotations: 11, value: 402300, flagged_lines: 7 },
+    { rep: "Jordan Rao", quotations: 7, value: 208900, flagged_lines: 2 },
+  ],
+};
