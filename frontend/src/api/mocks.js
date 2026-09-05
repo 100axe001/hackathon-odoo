@@ -907,14 +907,6 @@ export const MOCK_DISCOUNT_CONFIG = {
   ],
 };
 
-// Seeded internal user, so the shell renders before /auth/me exists.
-export const MOCK_SESSION = {
-  id: "u1",
-  name: "Alex Turner",
-  email: "alex.turner@dealflow.corp",
-  role: "SALES_REP",
-};
-
 // PS section 4 A4: warehouses carry the shipping cost weight the auto-split
 // logic uses to minimise shipment count.
 export const MOCK_WAREHOUSES = [

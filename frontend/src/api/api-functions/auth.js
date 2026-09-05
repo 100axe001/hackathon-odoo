@@ -1,16 +1,15 @@
 import { apiGet, apiSend } from "../client";
 import { authEndpoints } from "../apiEndpoints";
-import { MOCK_SESSION } from "../mocks";
-
-// Expected: { id, name, email, role }
+// Expected: { id, name, email, role }, or null when not signed in.
 //
-// Falls back to a seeded internal user so the app is navigable before /auth
-// exists. Phase 3 replaces the fallback with a redirect to /login.
+// Deliberately no mock fallback. Returning a fake session made RequireRole
+// wave everyone through - the guard looked like access control while enforcing
+// nothing. Not signed in must read as not signed in.
 export async function loadSession() {
   try {
     return await apiGet(authEndpoints.me);
   } catch {
-    return MOCK_SESSION;
+    return null;
   }
 }
 
