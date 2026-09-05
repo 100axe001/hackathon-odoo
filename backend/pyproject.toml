@@ -1,0 +1,27 @@
+[tool.ruff]
+# Matches black, so the two never disagree about where a line ends.
+# Ruff is a LINTER here - never run `ruff format`. See AGENTS.md.
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F are ruff's defaults. I is import sorting, B catches likely bugs,
+# UP modernises syntax for the target version.
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.ruff.lint.flake8-bugbear]
+# B008 exists to catch mutable defaults evaluated once at import. FastAPI's
+# dependency markers are exactly that by design, and are the documented idiom -
+# so exempt them rather than switching the rule off everywhere.
+extend-immutable-calls = [
+    "fastapi.Depends",
+    "fastapi.Query",
+    "fastapi.Path",
+    "fastapi.Body",
+    "fastapi.Header",
+    "fastapi.Cookie",
+]
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
