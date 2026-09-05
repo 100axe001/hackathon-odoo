@@ -14,6 +14,15 @@ async function request(path, options = {}) {
     ...options,
   });
 
+  if (res.status === 401) {
+    // The session expired or was never established. Send the user to sign in
+    // rather than letting nineteen screens each render their own error.
+    if (!window.location.pathname.startsWith("/login")) {
+      window.location.replace("/login");
+    }
+    throw new Error("401 Unauthorized");
+  }
+
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 
   const body = await res.json();
