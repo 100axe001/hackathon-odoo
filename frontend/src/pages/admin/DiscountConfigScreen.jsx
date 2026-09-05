@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { AdminTabs } from "@/components/admin/AdminTabs";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -64,6 +65,7 @@ export function DiscountConfigScreen() {
                       className="rounded-md px-2 py-1 text-sm text-right tabular-nums outline-none transition-all duration-150"
                       style={{ border: `1px solid ${C.border}`, width: 60 }}
                     />
+                    <AdminTabs />
                     <span className="text-sm" style={{ color: C.muted }}>
                       %
                     </span>

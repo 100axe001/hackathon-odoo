@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -8,7 +9,8 @@ import { Td, Th, Tr } from "@/components/ui/Table";
 import { Transition } from "@/components/ui/Transition";
 import { loadProducts } from "@/api/api-functions/products";
 
-export function ProductsScreen({ setRoute }) {
+export function ProductsScreen() {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   useEffect(() => {
     loadProducts().then(setData);
@@ -42,10 +44,7 @@ export function ProductsScreen({ setRoute }) {
           </thead>
           <tbody>
             {data.map((p) => (
-              <Tr
-                key={p.id}
-                onClick={() => setRoute({ name: "product-detail", id: p.id })}
-              >
+              <Tr key={p.id} onClick={() => navigate(`/products/${p.id}`)}>
                 <Td>{p.name}</Td>
                 <Td>{p.category}</Td>
                 <Td right>{p.variants}</Td>

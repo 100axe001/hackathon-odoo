@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -8,7 +9,8 @@ import { Td, Th, Tr } from "@/components/ui/Table";
 import { Transition } from "@/components/ui/Transition";
 import { loadSubscriptions } from "@/api/api-functions/subscriptions";
 
-export function SubscriptionsScreen({ setRoute }) {
+export function SubscriptionsScreen() {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   useEffect(() => {
     loadSubscriptions().then(setData);
@@ -40,12 +42,7 @@ export function SubscriptionsScreen({ setRoute }) {
           </thead>
           <tbody>
             {data.map((s) => (
-              <Tr
-                key={s.id}
-                onClick={() =>
-                  setRoute({ name: "subscription-detail", id: s.id })
-                }
-              >
+              <Tr key={s.id} onClick={() => navigate(`/subscriptions/${s.id}`)}>
                 <Td>{s.customer}</Td>
                 <Td>{s.plan}</Td>
                 <Td>{s.cycle}</Td>

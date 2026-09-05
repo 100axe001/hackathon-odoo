@@ -1,3 +1,4 @@
+import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -10,7 +11,9 @@ import { Transition } from "@/components/ui/Transition";
 import { C } from "@/constants/theme";
 import { loadApprovalDetail } from "@/api/api-functions/approvals";
 
-export function ApprovalDetailScreen({ id, setRoute }) {
+export function ApprovalDetailScreen() {
+  const navigate = useNavigate();
+  const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [toast, setToast] = useState("");
   useEffect(() => {
@@ -31,7 +34,7 @@ export function ApprovalDetailScreen({ id, setRoute }) {
 
   const decide = (decision) => {
     setToast(`Decision recorded: ${decision}`);
-    setTimeout(() => setRoute({ name: "approvals", id: null }), 900);
+    setTimeout(() => navigate("/approvals"), 900);
   };
 
   return (
@@ -122,12 +125,12 @@ export function ApprovalDetailScreen({ id, setRoute }) {
           Reject
         </Button>
         <Button
-          variant="secondary"
+          variant="warning"
           onClick={() => decide("Returned for Revision")}
         >
           Return for Revision
         </Button>
-        <Button variant="primary" onClick={() => decide("Approved")}>
+        <Button variant="success" onClick={() => decide("Approved")}>
           Approve
         </Button>
       </div>

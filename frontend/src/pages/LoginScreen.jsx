@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { LogoMarkLight } from "@/components/layout/LogoMark";
 import { Button } from "@/components/ui/Button";
@@ -5,7 +6,8 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { C } from "@/constants/theme";
 
-export function LoginScreen({ setRoute }) {
+export function LoginScreen() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState("Log In");
   return (
     <div
@@ -45,7 +47,7 @@ export function LoginScreen({ setRoute }) {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              setRoute({ name: "dashboard", id: null });
+              navigate("/dashboard");
             }}
             className="flex flex-col gap-4"
           >

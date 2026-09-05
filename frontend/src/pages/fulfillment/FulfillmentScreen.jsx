@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -7,7 +8,8 @@ import { Transition } from "@/components/ui/Transition";
 import { C } from "@/constants/theme";
 import { loadOrders, loadStock } from "@/api/api-functions/fulfillment";
 
-export function FulfillmentScreen({ setRoute }) {
+export function FulfillmentScreen() {
+  const navigate = useNavigate();
   const [stock, setStock] = useState([]);
   const [orders, setOrders] = useState([]);
   useEffect(() => {
@@ -65,12 +67,7 @@ export function FulfillmentScreen({ setRoute }) {
           </thead>
           <tbody>
             {orders.map((o) => (
-              <Tr
-                key={o.id}
-                onClick={() =>
-                  setRoute({ name: "fulfillment-detail", id: o.id })
-                }
-              >
+              <Tr key={o.id} onClick={() => navigate(`/fulfillment/${o.id}`)}>
                 <Td>{o.order}</Td>
                 <Td>{o.customer}</Td>
                 <Td>

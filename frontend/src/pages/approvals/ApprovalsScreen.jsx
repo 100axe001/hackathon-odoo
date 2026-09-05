@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -8,7 +9,8 @@ import { Transition } from "@/components/ui/Transition";
 import { C } from "@/constants/theme";
 import { loadApprovals } from "@/api/api-functions/approvals";
 
-export function ApprovalsScreen({ setRoute }) {
+export function ApprovalsScreen() {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [pendingOnly, setPendingOnly] = useState(true);
   useEffect(() => {
@@ -48,10 +50,7 @@ export function ApprovalsScreen({ setRoute }) {
           </thead>
           <tbody>
             {data.map((a) => (
-              <Tr
-                key={a.id}
-                onClick={() => setRoute({ name: "approval-detail", id: a.id })}
-              >
+              <Tr key={a.id} onClick={() => navigate(`/approvals/${a.id}`)}>
                 <Td>{a.quotation}</Td>
                 <Td>{a.customer}</Td>
                 <Td>

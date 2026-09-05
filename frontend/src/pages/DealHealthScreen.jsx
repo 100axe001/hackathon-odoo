@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -9,6 +10,14 @@ import { C } from "@/constants/theme";
 import { loadDealHealth } from "@/api/api-functions/dealHealth";
 
 export function DealHealthScreen() {
+  const navigate = useNavigate();
+
+  // PS section 4 B9: "Clicking an alert opens the related quotation directly".
+  // The deal label carries the reference, e.g. "Acme Corp - Q-1042".
+  const openDeal = (deal) => {
+    const ref = String(deal).split("—").pop().trim().toLowerCase();
+    navigate(`/quotations/${ref || "q1"}`);
+  };
   const [data, setData] = useState(null);
   const [toast, setToast] = useState("");
   useEffect(() => {
@@ -52,7 +61,7 @@ export function DealHealthScreen() {
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <Tr key={i}>
+              <Tr key={i} onClick={() => openDeal(r.deal)}>
                 <Td>{r.deal}</Td>
                 <Td className="text-xs" style={{ color: C.muted }}>
                   {r.issue}
@@ -60,17 +69,21 @@ export function DealHealthScreen() {
                 <Td>{r.flagged}</Td>
                 <Td right>
                   <div className="flex justify-end gap-2">
+                    {/* Escalate is the louder of the two, per the wireframe. */}
                     <button
                       onClick={() => setToast(`Escalated: ${r.deal}`)}
                       className="text-xs rounded-md px-2.5 py-1 transition-colors duration-150"
-                      style={{ border: `1px solid ${C.border}`, color: C.text }}
+                      style={{
+                        backgroundColor: C.dangerText,
+                        color: "#fff",
+                      }}
                     >
                       Escalate
                     </button>
                     <button
                       onClick={() => setToast(`Nudged rep on: ${r.deal}`)}
                       className="text-xs rounded-md px-2.5 py-1 transition-colors duration-150"
-                      style={{ border: `1px solid ${C.border}`, color: C.text }}
+                      style={{ backgroundColor: C.accent, color: "#fff" }}
                     >
                       Nudge Rep
                     </button>

@@ -102,7 +102,7 @@ export function PortalNegotiationScreen() {
         </div>
         <div className="flex gap-3">
           <Button variant="secondary">Submit Request</Button>
-          <Button variant="primary" onClick={confirm}>
+          <Button variant="success" onClick={confirm}>
             Confirm Quotation
           </Button>
         </div>

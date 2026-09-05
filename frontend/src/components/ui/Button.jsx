@@ -22,6 +22,10 @@ export function Button({
       color: C.dangerText,
       border: `1px solid ${C.dangerText}`,
     },
+    // The wireframe colour-codes approval decisions: green approve, amber
+    // return, red reject. The colour is the fastest signal on that screen.
+    success: { backgroundColor: C.successText, color: "#fff" },
+    warning: { backgroundColor: C.warnText, color: "#fff" },
   };
   const [hover, setHover] = useState(false);
   const hoverStyles = {
@@ -36,6 +40,8 @@ export function Button({
       color: "#fff",
       border: `1px solid ${C.dangerText}`,
     },
+    success: { backgroundColor: C.successText, color: "#fff", opacity: 0.9 },
+    warning: { backgroundColor: C.warnText, color: "#fff", opacity: 0.9 },
   };
   return (
     <button

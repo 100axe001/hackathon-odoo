@@ -1,3 +1,4 @@
+import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -6,6 +7,7 @@ import { Select } from "@/components/ui/Select";
 import { Td, Th, Tr } from "@/components/ui/Table";
 import { Toast } from "@/components/ui/Toast";
 import { Transition } from "@/components/ui/Transition";
+import { ProductPicker } from "@/components/quotations/ProductPicker";
 import { C } from "@/constants/theme";
 import {
   loadQuotationDetail,
@@ -13,10 +15,14 @@ import {
   patchDiscount,
 } from "@/api/api-functions/quotations";
 
-export function QuotationDetailScreen({ id, setRoute }) {
+export function QuotationDetailScreen() {
+  const navigate = useNavigate();
+  const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [upsells, setUpsells] = useState([]);
   const [toast, setToast] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [orderDiscount, setOrderDiscount] = useState(0);
   const timers = useRef({});
 
   useEffect(() => {
@@ -56,6 +62,47 @@ export function QuotationDetailScreen({ id, setRoute }) {
     }, 400);
   };
 
+  // PS section 4 B5 pairs "Add to Quote" with "Dismiss" - a rep needs to clear a
+  // suggestion that is wrong for this customer without adding it.
+  const dismissUpsell = (index) => {
+    setUpsells((list) => list.filter((_, i) => i !== index));
+  };
+
+  const addCatalogueLine = (product) => {
+    setDetail((d) => ({
+      ...d,
+      lines: [
+        ...d.lines,
+        {
+          id: `l${d.lines.length + 1}-${product.id}`,
+          product: product.name,
+          qty: 1,
+          price: product.price,
+          discount_pct: 0,
+          limit_pct: product.category === "Services" ? 10 : 15,
+          status: "OK",
+        },
+      ],
+    }));
+    setToast(`${product.name} added`);
+  };
+
+  // PS section 4 B3 allows an order-level discount. It is pushed down onto every
+  // line rather than held separately, so each line is still checked against its
+  // own ceiling - otherwise an order-level figure would bypass governance.
+  const applyOrderDiscount = (value) => {
+    const pct = Math.max(0, Number(value) || 0);
+    setOrderDiscount(pct);
+    setDetail((d) => ({
+      ...d,
+      lines: d.lines.map((l) => ({
+        ...l,
+        discount_pct: pct,
+        status: pct > l.limit_pct ? "OVER" : "OK",
+      })),
+    }));
+  };
+
   const addUpsellLine = (product) => {
     const newLine = {
       id: `l${Date.now()}`,
@@ -77,7 +124,7 @@ export function QuotationDetailScreen({ id, setRoute }) {
   const submit = () => {
     const hasHighRisk = detail.lines.some((l) => l.status === "OVER");
     if (hasHighRisk) {
-      setRoute({ name: "approval-detail", id });
+      navigate(`/approvals/${id}`);
     } else {
       setToast("Auto-approved");
     }
@@ -98,6 +145,15 @@ export function QuotationDetailScreen({ id, setRoute }) {
             />
           </div>
         </div>
+      </div>
+
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-base font-semibold" style={{ color: C.text }}>
+          Order Lines
+        </div>
+        <Button variant="secondary" onClick={() => setPickerOpen(true)}>
+          + Add Product
+        </Button>
       </div>
 
       <Card className="mb-6">
@@ -194,26 +250,48 @@ export function QuotationDetailScreen({ id, setRoute }) {
               />
               {u.promo_tag && <Badge status="Pending" label={u.promo_tag} />}
             </div>
-            <Button
-              variant="secondary"
-              onClick={() => addUpsellLine(u)}
-              className="mt-1 self-start"
-            >
-              + Add
-            </Button>
+            <div className="flex items-center gap-2 mt-1">
+              <Button variant="secondary" onClick={() => addUpsellLine(u)}>
+                Add to Quote
+              </Button>
+              <button
+                onClick={() => dismissUpsell(i)}
+                className="text-xs px-2 py-1 transition-colors duration-150"
+                style={{ color: C.muted }}
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="text-sm" style={{ color: C.muted }}>
-          Estimated margin:{" "}
-          <span
-            className="font-semibold tabular-nums"
-            style={{ color: C.text }}
-          >
-            ${margin.toFixed(0)}
-          </span>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <span className="text-sm" style={{ color: C.muted }}>
+              Order discount
+            </span>
+            <input
+              type="number"
+              value={orderDiscount}
+              onChange={(e) => applyOrderDiscount(e.target.value)}
+              className="rounded-md px-2 py-1 text-sm text-right tabular-nums outline-none transition-all duration-150"
+              style={{ border: `1px solid ${C.border}`, width: 60 }}
+            />
+            <span className="text-sm" style={{ color: C.muted }}>
+              %
+            </span>
+          </div>
+          <div className="text-sm" style={{ color: C.muted }}>
+            Estimated margin:{" "}
+            <span
+              className="font-semibold tabular-nums"
+              style={{ color: C.text }}
+            >
+              ${margin.toFixed(0)}
+            </span>
+          </div>
         </div>
         <div className="flex gap-3">
           <Button variant="secondary" onClick={() => setToast("Draft saved")}>
@@ -224,6 +302,11 @@ export function QuotationDetailScreen({ id, setRoute }) {
           </Button>
         </div>
       </div>
+      <ProductPicker
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onAdd={addCatalogueLine}
+      />
       <Toast message={toast} onClose={() => setToast("")} />
     </Transition>
   );

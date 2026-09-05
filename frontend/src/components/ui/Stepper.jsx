@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { C } from "@/constants/theme";
 
 export function Stepper({ steps, currentIndex }) {
@@ -7,7 +8,7 @@ export function Stepper({ steps, currentIndex }) {
         const state =
           i < currentIndex ? "done" : i === currentIndex ? "active" : "pending";
         return (
-          <React.Fragment key={step}>
+          <Fragment key={step}>
             <div
               className="flex flex-col items-center gap-1.5"
               style={{ minWidth: 90 }}
@@ -54,7 +55,7 @@ export function Stepper({ steps, currentIndex }) {
                 }}
               />
             )}
-          </React.Fragment>
+          </Fragment>
         );
       })}
     </div>

@@ -1,3 +1,4 @@
+import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -9,7 +10,8 @@ import { Transition } from "@/components/ui/Transition";
 import { C } from "@/constants/theme";
 import { loadInvoiceDetail } from "@/api/api-functions/invoices";
 
-export function InvoiceDetailScreen({ id }) {
+export function InvoiceDetailScreen() {
+  const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [toast, setToast] = useState("");
   useEffect(() => {
@@ -62,7 +64,7 @@ export function InvoiceDetailScreen({ id }) {
         >
           Download Summary
         </Button>
-        <Button variant="primary" onClick={() => setToast("Payment recorded")}>
+        <Button variant="success" onClick={() => setToast("Payment recorded")}>
           Record Payment
         </Button>
       </div>

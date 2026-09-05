@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
@@ -7,7 +8,8 @@ import { Td, Th, Tr } from "@/components/ui/Table";
 import { Transition } from "@/components/ui/Transition";
 import { loadInvoices } from "@/api/api-functions/invoices";
 
-export function InvoicesScreen({ setRoute }) {
+export function InvoicesScreen() {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   useEffect(() => {
     loadInvoices().then(setData);
@@ -34,10 +36,7 @@ export function InvoicesScreen({ setRoute }) {
           </thead>
           <tbody>
             {data.map((inv) => (
-              <Tr
-                key={inv.id}
-                onClick={() => setRoute({ name: "invoice-detail", id: inv.id })}
-              >
+              <Tr key={inv.id} onClick={() => navigate(`/invoices/${inv.id}`)}>
                 <Td>{inv.invoice_no}</Td>
                 <Td>{inv.customer}</Td>
                 <Td right>${inv.amount.toLocaleString()}</Td>

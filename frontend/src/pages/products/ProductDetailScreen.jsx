@@ -1,3 +1,4 @@
+import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -11,7 +12,8 @@ import { Transition } from "@/components/ui/Transition";
 import { C } from "@/constants/theme";
 import { loadProductDetail } from "@/api/api-functions/products";
 
-export function ProductDetailScreen({ id }) {
+export function ProductDetailScreen() {
+  const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [toast, setToast] = useState("");
   useEffect(() => {
