@@ -13,6 +13,7 @@ import {
   loadQuotationDetail,
   loadUpsells,
   patchDiscount,
+  submitQuotation,
 } from "@/api/api-functions/quotations";
 
 export function QuotationDetailScreen() {
@@ -121,12 +122,22 @@ export function QuotationDetailScreen() {
     0,
   );
 
-  const submit = () => {
-    const hasHighRisk = detail.lines.some((l) => l.status === "OVER");
-    if (hasHighRisk) {
-      navigate(`/approvals/${id}`);
-    } else {
-      setToast("Auto-approved");
+  // The backend decides. The client no longer guesses from the line badges -
+  // a quote can be routed for approval by the blended path even when no single
+  // line looks bad, which the old check could never have caught.
+  const submit = async () => {
+    try {
+      const result = await submitQuotation(id);
+      if (result.required_approval.length > 0) {
+        setToast(
+          `${result.risk_level} risk - routed to ${result.required_approval.join(" then ")}`,
+        );
+        setTimeout(() => navigate(`/approvals/${id}`), 1200);
+      } else {
+        setToast("Auto-approved - no approval required");
+      }
+    } catch {
+      setToast("Could not submit. Is the API running?");
     }
   };
 

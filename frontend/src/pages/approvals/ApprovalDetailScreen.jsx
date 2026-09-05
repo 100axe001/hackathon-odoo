@@ -9,13 +9,17 @@ import { Td, Th, Tr } from "@/components/ui/Table";
 import { Toast } from "@/components/ui/Toast";
 import { Transition } from "@/components/ui/Transition";
 import { C } from "@/constants/theme";
-import { loadApprovalDetail } from "@/api/api-functions/approvals";
+import {
+  decideApproval,
+  loadApprovalDetail,
+} from "@/api/api-functions/approvals";
 
 export function ApprovalDetailScreen() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [toast, setToast] = useState("");
+  const [comment, setComment] = useState("");
   useEffect(() => {
     loadApprovalDetail(id).then(setDetail);
   }, [id]);
@@ -25,16 +29,32 @@ export function ApprovalDetailScreen() {
     (a, b) => (b.over_by > a.over_by ? b : a),
     detail.lines[0],
   );
-  const stageIndex = [
-    "Submitted",
-    "Sales Manager",
-    "Finance",
-    "Confirmed",
-  ].indexOf(detail.stage);
+  // The API reports the stage as the role still owed an action, or "Complete".
+  // Map that onto the four labels the wireframe shows.
+  const STAGE_INDEX = {
+    SALES_MANAGER: 1,
+    FINANCE: 2,
+    Complete: 3,
+  };
+  const stageIndex = STAGE_INDEX[detail.stage] ?? 0;
 
-  const decide = (decision) => {
-    setToast(`Decision recorded: ${decision}`);
-    setTimeout(() => navigate("/approvals"), 900);
+  // "approve" | "return" | "reject" - the values the API expects. The server
+  // decides whether this caller may act: it rejects a rep approving their own
+  // quotation, and a reviewer jumping ahead of the step before theirs.
+  const decide = async (decision) => {
+    try {
+      const result = await decideApproval(id, decision, comment || null);
+      setToast(
+        result.complete
+          ? `Approved - chain complete`
+          : result.stage
+            ? `Recorded. Now with ${result.stage}`
+            : `Quotation ${result.status}`,
+      );
+      setTimeout(() => navigate("/approvals"), 1200);
+    } catch {
+      setToast("Not permitted. You may not act on this step.");
+    }
   };
 
   return (
@@ -79,9 +99,14 @@ export function ApprovalDetailScreen() {
           </tbody>
         </table>
         <div className="text-sm" style={{ color: C.muted }}>
-          {worst.over_by > 0
-            ? `The "${worst.line}" line was discounted ${worst.discount_given}%, which is ${worst.over_by} points above the ${worst.limit_allowed}% ceiling for this customer tier — this is the primary driver of the ${detail.blended_risk} risk rating.`
-            : "No individual line exceeds its discount ceiling."}
+          {/* Prefer the server's wording. It is generated from the actual
+              calculation (PS section 5) and, unlike anything the client can
+              build from `worst`, it can describe the case where no single line
+              is the culprit and the blended pattern is what escalated. */}
+          {detail.explanation ||
+            (worst.over_by > 0
+              ? `The "${worst.line}" line was discounted ${worst.discount_given}%, which is ${worst.over_by} points above the ${worst.limit_allowed}% ceiling for this customer tier.`
+              : "No individual line exceeds its discount ceiling.")}
         </div>
       </Card>
 
@@ -120,17 +145,28 @@ export function ApprovalDetailScreen() {
         </table>
       </Card>
 
+      <div className="mb-4">
+        <label className="text-sm mb-1 block" style={{ color: C.text }}>
+          Reviewer comment
+        </label>
+        <textarea
+          rows={2}
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder="Reason for this decision - stored on the audit trail"
+          className="w-full rounded-md px-3 py-2 text-sm outline-none transition-all duration-150"
+          style={{ border: `1px solid ${C.border}` }}
+        />
+      </div>
+
       <div className="flex justify-end gap-3">
-        <Button variant="destructive" onClick={() => decide("Rejected")}>
+        <Button variant="destructive" onClick={() => decide("reject")}>
           Reject
         </Button>
-        <Button
-          variant="warning"
-          onClick={() => decide("Returned for Revision")}
-        >
+        <Button variant="warning" onClick={() => decide("return")}>
           Return for Revision
         </Button>
-        <Button variant="success" onClick={() => decide("Approved")}>
+        <Button variant="success" onClick={() => decide("approve")}>
           Approve
         </Button>
       </div>

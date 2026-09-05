@@ -45,3 +45,12 @@ export async function patchDiscount(id, lineId, discountPct, limitPct) {
       : { status: "OK", over_by_pct: 0 };
   }
 }
+
+// Expected: { risk_level, decided_by, blended_score, required_approval, status, explanation }
+//
+// No mock fallback on purpose. Submitting is the moment the governance engine
+// runs, so a failure has to surface rather than be papered over with a fake
+// success - the caller shows the error.
+export async function submitQuotation(id) {
+  return apiSend(quotationEndpoints.submit(id), "POST");
+}
