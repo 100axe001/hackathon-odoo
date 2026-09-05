@@ -72,6 +72,7 @@ export const portalEndpoints = {
 
 export const authEndpoints = {
   login: "/auth/login",
+  signup: "/auth/signup",
   logout: "/auth/logout",
   me: "/auth/me",
 };
