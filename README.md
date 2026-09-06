@@ -93,9 +93,12 @@ ceiling, risk level, approval chain or margin is worked out in the browser.
 
 | Document | For |
 | --- | --- |
-| [`docs/architecture/data-model.md`](docs/architecture/data-model.md) | The tables and how they relate |
+| [`docs/architecture/database-at-a-glance.md`](docs/architecture/database-at-a-glance.md) | The whole schema on one screen |
+| [`docs/architecture/data-model.md`](docs/architecture/data-model.md) | The tables in full, and why Postgres |
 | [`docs/architecture/api-contract.md`](docs/architecture/api-contract.md) | Every endpoint, and who may call it |
-| [`docs/engineering/risk-engine-and-ml.md`](docs/engineering/risk-engine-and-ml.md) | How discount governance decides, and why ML does not |
+| [`docs/engineering/formulas.md`](docs/engineering/formulas.md) | Every formula, with each term defined |
+| [`docs/engineering/algorithms.md`](docs/engineering/algorithms.md) | Warehouse splitting and approval routing, step by step |
+| [`docs/engineering/risk-engine-and-ml.md`](docs/engineering/risk-engine-and-ml.md) | The risk spec in full, and why ML was cut |
 | [`docs/engineering/warehouse-split.md`](docs/engineering/warehouse-split.md) | The allocation algorithm |
 | [`docs/engineering/billing-proration.md`](docs/engineering/billing-proration.md) | Mid-cycle changes and credit notes |
 | [`docs/deliverables/`](docs/deliverables/) | Architecture diagram and what we would build next |
