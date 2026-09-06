@@ -60,8 +60,30 @@ class SplitRow(BaseModel):
     cost: float
 
 
+class WarehouseLeg(BaseModel):
+    """One warehouse's whole contribution to an order - the parcel it ships."""
+
+    warehouse_id: int | None
+    warehouse: str
+    region: str
+    units: int
+    product_lines: int
+    cost: float
+
+
+class BackorderRow(BaseModel):
+    """Outstanding demand, and whether anywhere can cover it now."""
+
+    product_id: int
+    product: str
+    qty: int
+    available_now: int
+    sources: list[str]
+
+
 class SplitData(BaseModel):
     id: str
+    number: str
     customer: str
     status: str
     warehouses: list[SplitRow]
@@ -69,6 +91,18 @@ class SplitData(BaseModel):
     total_cost: float
     backordered: int
     complete: bool
+
+    # What the screen needs to explain itself: the parcels rather than the
+    # rows, what is still outstanding and where it could come from, and which
+    # actions are legal from here.
+    legs: list[WarehouseLeg] = []
+    backorder: list[BackorderRow] = []
+    ordered_units: int = 0
+    fulfilled_units: int = 0
+    can_consolidate: bool = False
+    can_ship: bool = False
+    shipped_at: str | None = None
+    nothing_to_ship: bool = False
 
 
 class SplitResponse(BaseModel):
