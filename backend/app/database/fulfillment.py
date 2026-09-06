@@ -138,10 +138,20 @@ def db_release_stock(
 
 
 def db_restock(session: Session, warehouse_id: int, product_id: int, qty: int) -> None:
-    """Raise on-hand stock. Backs the Simulate Restock demo affordance."""
+    """Raise on-hand stock, opening the row if this warehouse has never held it.
+
+    Without the create it silently did nothing for a product the warehouse had
+    not carried before - which is exactly the case a restock is for, and it
+    returned success while changing nothing.
+    """
     level = db_get_stock_level(session, warehouse_id, product_id)
-    if level is not None:
-        level.qty_on_hand += qty
+    if level is None:
+        level = StockLevel(
+            warehouse_id=warehouse_id, product_id=product_id, qty_on_hand=0
+        )
+        session.add(level)
+    level.qty_on_hand += qty
+    session.flush()
 
 
 class ReservedBy(TypedDict):
@@ -189,3 +199,14 @@ def db_reservations_by_row(
     return {
         key: sorted(v.values(), key=lambda c: -c["qty"]) for key, v in claims.items()
     }
+
+
+def db_stocked_product_ids(session: Session) -> set[int]:
+    """Products that are held as inventory somewhere.
+
+    A workshop or a cloud subscription is delivered, not shipped, so it has no
+    stock row anywhere and must not create warehouse demand. Deriving that from
+    the data rather than from a category name means it stays right when someone
+    renames a category.
+    """
+    return set(session.scalars(select(StockLevel.product_id).distinct()).all())
