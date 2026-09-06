@@ -6,24 +6,48 @@ import { StatCard } from "@/components/ui/StatCard";
 import { Td, Th, Tr } from "@/components/ui/Table";
 import { Toast } from "@/components/ui/Toast";
 import { Transition } from "@/components/ui/Transition";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { C } from "@/constants/theme";
-import { loadDealHealth } from "@/api/api-functions/dealHealth";
+import {
+  escalateFlag,
+  loadDealHealth,
+  nudgeFlag,
+} from "@/api/api-functions/dealHealth";
 
 export function DealHealthScreen() {
   const navigate = useNavigate();
 
   // PS section 4 B9: "Clicking an alert opens the related quotation directly".
-  // The deal label carries the reference, e.g. "Acme Corp - Q-1042".
-  const openDeal = (deal) => {
-    const ref = String(deal).split("—").pop().trim().toLowerCase();
-    navigate(`/quotations/${ref || "q1"}`);
-  };
+  // The API carries quotation_id, so this no longer parses it back out of the
+  // display label - which broke the moment a customer name contained a dash.
+  const openDeal = (row) => navigate(`/quotations/${row.quotation_id}`);
   const [data, setData] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [toast, setToast] = useState("");
   useEffect(() => {
-    loadDealHealth().then(setData);
+    loadDealHealth().then(setData).catch(setLoadError);
   }, []);
+  if (loadError)
+    return (
+      <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
+    );
   if (!data) return null;
+  const refresh = () => loadDealHealth().then(setData);
+
+  const act = async (row, kind) => {
+    try {
+      await (kind === "escalate" ? escalateFlag(row.id) : nudgeFlag(row.id));
+      setToast(
+        kind === "escalate"
+          ? `Escalated: ${row.deal}`
+          : `Nudged the rep on ${row.deal}`,
+      );
+      refresh();
+    } catch {
+      setToast("Could not record that action.");
+    }
+  };
+
   const rows = [
     ...data.stalled.map((d) => ({ ...d, category: "Stalled" })),
     ...data.anomalies.map((d) => ({ ...d, category: "Anomaly" })),
@@ -61,7 +85,7 @@ export function DealHealthScreen() {
           </thead>
           <tbody>
             {rows.map((r, i) => (
-              <Tr key={i} onClick={() => openDeal(r.deal)}>
+              <Tr key={i} onClick={() => openDeal(r)}>
                 <Td>{r.deal}</Td>
                 <Td className="text-xs" style={{ color: C.muted }}>
                   {r.issue}
@@ -71,7 +95,10 @@ export function DealHealthScreen() {
                   <div className="flex justify-end gap-2">
                     {/* Escalate is the louder of the two, per the wireframe. */}
                     <button
-                      onClick={() => setToast(`Escalated: ${r.deal}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        act(r, "escalate");
+                      }}
                       className="text-xs rounded-md px-2.5 py-1 transition-colors duration-150"
                       style={{
                         backgroundColor: C.dangerText,
@@ -81,7 +108,10 @@ export function DealHealthScreen() {
                       Escalate
                     </button>
                     <button
-                      onClick={() => setToast(`Nudged rep on: ${r.deal}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        act(r, "nudge");
+                      }}
                       className="text-xs rounded-md px-2.5 py-1 transition-colors duration-150"
                       style={{ backgroundColor: C.accent, color: "#fff" }}
                     >

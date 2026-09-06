@@ -6,21 +6,28 @@ import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Td, Th, Tr } from "@/components/ui/Table";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { Transition } from "@/components/ui/Transition";
 import { loadProducts } from "@/api/api-functions/products";
 
 export function ProductsScreen() {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
+  const [loadError, setLoadError] = useState(null);
   useEffect(() => {
-    loadProducts().then(setData);
+    loadProducts().then(setData).catch(setLoadError);
   }, []);
+  if (loadError)
+    return (
+      <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
+    );
+
   return (
     <Transition keyProp="products">
       <PageHeader
         title="Products"
         action={
-          <Button variant="primary" onClick={() => navigate("/products/p1")}>
+          <Button variant="primary" onClick={() => navigate("/products/new")}>
             + New Product
           </Button>
         }
