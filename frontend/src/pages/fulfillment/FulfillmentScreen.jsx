@@ -2,15 +2,18 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
+import { FilterPill } from "@/components/ui/FilterPill";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Select } from "@/components/ui/Select";
 import { nextSort, SortableTh, sortRows } from "@/components/ui/SortableTh";
 import { Td, Th, Tr } from "@/components/ui/Table";
 import { Transition } from "@/components/ui/Transition";
+import { ViewToggle } from "@/components/ui/ViewToggle";
 import { C } from "@/constants/theme";
 import { loadOrders, loadStock } from "@/api/api-functions/fulfillment";
 
 const ALL = "All companies";
+const ANY_STATUS = "All";
 
 export function FulfillmentScreen() {
   const navigate = useNavigate();
@@ -25,6 +28,12 @@ export function FulfillmentScreen() {
     key: "order",
     direction: "asc",
   });
+  // Twenty-nine undifferentiated rows meant hunting for your own order, and
+  // fulfilling is gated to the rep who owns it - so the queue opens on yours.
+  // Anyone with none of their own (finance, an admin) falls back to everyone's
+  // rather than being shown an empty table.
+  const [scope, setScope] = useState("mine");
+  const [orderStatus, setOrderStatus] = useState(ANY_STATUS);
 
   const sortStock = (key) => setStockSort((c) => nextSort(c, key));
   const sortOrders = (key) => setOrderSort((c) => nextSort(c, key));
@@ -53,8 +62,25 @@ export function FulfillmentScreen() {
         : row[key],
   );
 
+  const anyMine = orders.some((o) => o.mine);
+  const scoped =
+    anyMine && scope === "mine" ? orders.filter((o) => o.mine) : orders;
+  // Built from the rows, so the filter can never offer a status with nothing
+  // behind it - the same reason the company list is derived rather than fixed.
+  const orderStatuses = Array.from(new Set(scoped.map((o) => o.status))).sort();
+  const countOf = (status) =>
+    scoped.filter(
+      (o) =>
+        (customer === ALL || o.customer === customer) &&
+        (status === ANY_STATUS || o.status === status),
+    ).length;
+
   const orderRows = sortRows(
-    orders.filter((o) => customer === ALL || o.customer === customer),
+    scoped.filter(
+      (o) =>
+        (customer === ALL || o.customer === customer) &&
+        (orderStatus === ANY_STATUS || o.status === orderStatus),
+    ),
     orderSort,
     (row, key) => row[key],
   );
@@ -175,8 +201,34 @@ export function FulfillmentScreen() {
         </table>
       </Card>
       <Card>
-        <div className="text-base font-semibold mb-3" style={{ color: C.text }}>
-          Orders Awaiting Fulfillment
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-base font-semibold" style={{ color: C.text }}>
+            Orders Awaiting Fulfillment
+          </div>
+          {anyMine && (
+            <ViewToggle
+              value={scope}
+              onChange={setScope}
+              options={[
+                {
+                  value: "mine",
+                  label: `Mine (${orders.filter((o) => o.mine).length})`,
+                },
+                { value: "all", label: `Everyone (${orders.length})` },
+              ]}
+            />
+          )}
+        </div>
+        <div className="flex items-center gap-1 mb-4">
+          {[ANY_STATUS, ...orderStatuses].map((f) => (
+            <FilterPill
+              key={f}
+              active={orderStatus === f}
+              onClick={() => setOrderStatus(f)}
+            >
+              {`${f} (${countOf(f)})`}
+            </FilterPill>
+          ))}
         </div>
         <table className="w-full border-collapse">
           <thead>
@@ -205,6 +257,15 @@ export function FulfillmentScreen() {
             </tr>
           </thead>
           <tbody>
+            {orderRows.length === 0 && (
+              <Tr>
+                <Td colSpan={5}>
+                  <span className="text-sm" style={{ color: C.muted }}>
+                    No orders match this filter.
+                  </span>
+                </Td>
+              </Tr>
+            )}
             {orderRows.map((o) => (
               <Tr key={o.id} onClick={() => navigate(`/fulfillment/${o.id}`)}>
                 <Td>{o.order}</Td>

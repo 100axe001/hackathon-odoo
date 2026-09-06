@@ -8,7 +8,10 @@ export async function loadStock() {
   return apiGet(fulfillmentEndpoints.stock);
 }
 
-// Expected: [{id, order, customer, handled_by, status, warehouses}]
+// Expected: [{id, order, customer, handled_by, mine, status, warehouses}]
+//
+// mine is the server's answer to "is this my order" - the queue defaults to
+// yours, and matching on handled_by would break on two people with one name.
 export async function loadOrders() {
   return apiGet(fulfillmentEndpoints.orders("pending"));
 }
