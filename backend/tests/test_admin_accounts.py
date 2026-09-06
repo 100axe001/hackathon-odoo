@@ -89,14 +89,20 @@ class TestCreatedAccountWorks:
     def test_they_only_see_their_own_companys_quotations(
         self, client: TestClient
     ) -> None:
-        """Q-1042 belongs to Acme, so a Beta buyer must not reach it."""
+        """Q-1042 belongs to Acme, so a Beta buyer must not reach it.
+
+        Checks the boundary rather than a count: Beta has its own quotations in
+        the seed, and the point is that Acme's are not among them.
+        """
         sign_in(client, ADMIN).post("/admin/users", json=NEW_CUSTOMER)
         client.post(
             "/auth/login",
             json={"email": NEW_CUSTOMER["email"], "password": "password123"},
         )
 
-        assert client.get("/portal/quotations").json()["data"] == []
+        visible = client.get("/portal/quotations").json()["data"]
+
+        assert "q1" not in {q["id"] for q in visible}
         assert client.get("/portal/quotations/q1").status_code == 404
 
     def test_a_duplicate_email_conflicts(self, client: TestClient) -> None:
