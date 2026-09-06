@@ -64,6 +64,21 @@ export function PortalOrdersScreen() {
                 </div>
               </div>
 
+              {/* The status raises a question - "partly on backorder", says
+                  who? - and the person handling the order is the answer. A
+                  mailto rather than a name alone, so acting on it is one
+                  click and not a search through old email. */}
+              <div className="text-sm mb-3" style={{ color: C.muted }}>
+                Handled by{" "}
+                <a
+                  href={`mailto:${order.rep_email}?subject=${encodeURIComponent(order.number)}`}
+                  className="font-medium underline"
+                  style={{ color: C.text }}
+                >
+                  {order.rep}
+                </a>
+              </div>
+
               {order.shipments.length > 0 && (
                 <table className="w-full border-collapse">
                   <thead>

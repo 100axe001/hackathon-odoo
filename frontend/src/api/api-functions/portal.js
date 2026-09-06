@@ -32,7 +32,7 @@ export async function confirmQuotation(id) {
   return apiSend(portalEndpoints.confirm(id), "POST");
 }
 
-// Expected: [{id, number, status, total, fulfillment,
+// Expected: [{id, number, status, total, fulfillment, rep, rep_email,
 //             shipments: [{warehouse, product, qty}]}]
 export async function loadPortalOrders() {
   return apiGet(portalEndpoints.orders);
