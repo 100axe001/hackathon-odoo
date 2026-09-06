@@ -62,6 +62,7 @@ def db_orders_awaiting_fulfillment(session: Session) -> list[Quotation]:
             )
             .options(
                 selectinload(Quotation.customer),
+                selectinload(Quotation.rep),
                 selectinload(Quotation.lines).selectinload(QuotationLine.product),
             )
             .order_by(Quotation.id)

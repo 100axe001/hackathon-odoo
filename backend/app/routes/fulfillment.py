@@ -128,6 +128,7 @@ def list_orders(
                     )
                 ),
                 warehouses=" + ".join(names) if names else "Not yet split",
+                handled_by=quotation.rep.full_name,
             )
         )
 
@@ -150,6 +151,9 @@ def restock(
 
     Backs the Simulate Restock affordance: B6 wants the consolidation prompt to
     appear when stock arrives, and a demo cannot wait for a real delivery.
+
+    Open to any internal role, unlike the fulfillment writes: this takes a
+    warehouse and a product, not an order, so there is no deal owner to defer to.
     """
     db_restock(db, payload.warehouse_id, payload.product_id, payload.qty)
     db.commit()

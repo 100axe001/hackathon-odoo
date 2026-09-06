@@ -39,6 +39,7 @@ class OrderRow(BaseModel):
     customer: str
     status: str
     warehouses: str
+    handled_by: str = ""
 
 
 class ListOrdersResponse(BaseModel):
@@ -103,6 +104,11 @@ class SplitData(BaseModel):
     can_ship: bool = False
     shipped_at: str | None = None
     nothing_to_ship: bool = False
+    handled_by: str = ""
+
+    # Decided by the server, never by the screen: the same rule answers this and
+    # the fulfillment endpoints, so a button cannot offer what the API will refuse.
+    can_act: bool = False
 
 
 class SplitResponse(BaseModel):

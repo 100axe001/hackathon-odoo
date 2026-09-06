@@ -1,12 +1,11 @@
-"""When a quotation may be thrown away. No FastAPI imports.
+"""Who may act on a quotation outside the approval chain. No FastAPI imports.
 
-Deleting is the one destructive action an ordinary user has, so the rule lives
-here rather than in the route: the same function answers the endpoint and fills
-the can_delete flag the screens render, which is what stops a button offering
-something the server will refuse.
+Deleting and fulfilling are both answered here rather than in their routes: the
+same function answers the endpoint and fills the flag the screens render, which
+is what stops a button offering something the server will refuse.
 """
 
-from app.models.enums import QuoteStatus
+from app.models.enums import QuoteStatus, UserRole
 from app.models.identity import User
 from app.models.quotation import Quotation
 
@@ -42,4 +41,33 @@ def lifecycle_util_can_delete(
     return lifecycle_util_delete_block(quotation, user, billed=billed) is None
 
 
-__all__ = ["lifecycle_util_can_delete", "lifecycle_util_delete_block"]
+def lifecycle_util_fulfillment_block(quotation: Quotation, user: User) -> str | None:
+    """Why this caller may not fulfil this order, or None if they may.
+
+    The deal's own rep ships it, and an admin may step in for anyone. There is
+    no warehouse role in the brief's five, so the owner is the person who knows
+    the deal - and leaving it open to every internal role meant finance could
+    accept a split, reserve stock and mark an order shipped on a deal it had
+    never seen.
+    """
+    if user.role == UserRole.ADMIN:
+        return None
+    if quotation.rep_id != user.id:
+        handler = quotation.rep.full_name if quotation.rep else "another rep"
+        return (
+            f"{quotation.number} is handled by {handler}. "
+            "Only the rep who owns the order, or an admin, can fulfil it."
+        )
+    return None
+
+
+def lifecycle_util_can_fulfil(quotation: Quotation, user: User) -> bool:
+    return lifecycle_util_fulfillment_block(quotation, user) is None
+
+
+__all__ = [
+    "lifecycle_util_can_delete",
+    "lifecycle_util_can_fulfil",
+    "lifecycle_util_delete_block",
+    "lifecycle_util_fulfillment_block",
+]

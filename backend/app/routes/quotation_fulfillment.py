@@ -37,6 +37,10 @@ from app.utils.fulfillment import (
     fulfillment_util_shipment_cost,
     fulfillment_util_split,
 )
+from app.utils.quotation_lifecycle import (
+    lifecycle_util_can_fulfil,
+    lifecycle_util_fulfillment_block,
+)
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -56,6 +60,15 @@ def _not_found(what: str) -> HTTPException:
         status_code=status.HTTP_404_NOT_FOUND,
         detail=ErrorResponse(
             success=False, error="Not Found", message=what
+        ).model_dump(),
+    )
+
+
+def _forbidden(message: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=ErrorResponse(
+            success=False, error="Forbidden", message=message
         ).model_dump(),
     )
 
@@ -107,7 +120,7 @@ def _plan_for(db: Session, quotation) -> tuple[list[dict], int, Decimal, int]:
     return rows, plan.shipments, plan.total_cost, plan.backordered
 
 
-def _to_split_data(db: Session, quotation) -> SplitData:
+def _to_split_data(db: Session, quotation, user: User) -> SplitData:
     allocations = db_list_allocations(db, quotation.id)
     warehouses = sorted(
         {a.warehouse_id for a in allocations if a.warehouse_id is not None}
@@ -165,6 +178,8 @@ def _to_split_data(db: Session, quotation) -> SplitData:
         # An order of nothing but services has no parcel to send. Saying so
         # beats an empty table that reads as a failed lookup.
         nothing_to_ship=ordered == 0,
+        handled_by=quotation.rep.full_name,
+        can_act=lifecycle_util_can_fulfil(quotation, user),
     )
 
 
@@ -252,7 +267,9 @@ def suggest_split(
         # SHIPPED belongs here too: without it, merely opening a shipped order
         # re-planned it, reset its status and released the stock it had used.
         return SplitResponse(
-            success=True, message="Split retrieved", data=_to_split_data(db, quotation)
+            success=True,
+            message="Split retrieved",
+            data=_to_split_data(db, quotation, user),
         )
 
     rows, shipments, cost, backordered = _plan_for(db, quotation)
@@ -267,14 +284,16 @@ def suggest_split(
         backordered,
     )
     return SplitResponse(
-        success=True, message="Split suggested", data=_to_split_data(db, quotation)
+        success=True,
+        message="Split suggested",
+        data=_to_split_data(db, quotation, user),
     )
 
 
 @router.post(
     "/{quotation_id}/fulfillment/accept",
     response_model=SplitResponse,
-    responses={code: {"model": ErrorResponse} for code in (404, 500)},
+    responses={code: {"model": ErrorResponse} for code in (403, 404, 500)},
 )
 def accept_split(
     quotation_id: str,
@@ -285,6 +304,10 @@ def accept_split(
     quotation = db_get_quotation(db, _parse_id(quotation_id), user)
     if quotation is None:
         raise _not_found(f"No quotation {quotation_id}")
+
+    block = lifecycle_util_fulfillment_block(quotation, user)
+    if block is not None:
+        raise _forbidden(block)
 
     for allocation in db_list_allocations(db, quotation.id):
         if allocation.warehouse_id is not None:
@@ -297,14 +320,14 @@ def accept_split(
     logger.info("%s accepted the split for %s", user.full_name, quotation.number)
 
     return SplitResponse(
-        success=True, message="Split accepted", data=_to_split_data(db, quotation)
+        success=True, message="Split accepted", data=_to_split_data(db, quotation, user)
     )
 
 
 @router.post(
     "/{quotation_id}/fulfillment/override",
     response_model=SplitResponse,
-    responses={code: {"model": ErrorResponse} for code in (404, 500)},
+    responses={code: {"model": ErrorResponse} for code in (403, 404, 500)},
 )
 def override_split(
     quotation_id: str,
@@ -316,6 +339,10 @@ def override_split(
     quotation = db_get_quotation(db, _parse_id(quotation_id), user)
     if quotation is None:
         raise _not_found(f"No quotation {quotation_id}")
+
+    block = lifecycle_util_fulfillment_block(quotation, user)
+    if block is not None:
+        raise _forbidden(block)
 
     weights = {w.warehouse_id: w.shipping_cost_weight for w in db_warehouse_stock(db)}
     charged: set[int] = set()
@@ -370,14 +397,14 @@ def override_split(
     return SplitResponse(
         success=True,
         message="Manual split saved",
-        data=_to_split_data(db, quotation),
+        data=_to_split_data(db, quotation, user),
     )
 
 
 @router.post(
     "/{quotation_id}/fulfillment/consolidate",
     response_model=SplitResponse,
-    responses={code: {"model": ErrorResponse} for code in (404, 409, 500)},
+    responses={code: {"model": ErrorResponse} for code in (403, 404, 409, 500)},
 )
 def consolidate_backorder(
     quotation_id: str,
@@ -394,6 +421,10 @@ def consolidate_backorder(
     quotation = db_get_quotation(db, _parse_id(quotation_id), user)
     if quotation is None:
         raise _not_found(f"No quotation {quotation_id}")
+
+    block = lifecycle_util_fulfillment_block(quotation, user)
+    if block is not None:
+        raise _forbidden(block)
 
     if quotation.fulfillment_status not in (
         FulfilStatus.SPLIT_ACCEPTED,
@@ -463,14 +494,14 @@ def consolidate_backorder(
     return SplitResponse(
         success=True,
         message=f"Consolidated {filled} unit(s) from newly arrived stock",
-        data=_to_split_data(db, quotation),
+        data=_to_split_data(db, quotation, user),
     )
 
 
 @router.post(
     "/{quotation_id}/fulfillment/ship",
     response_model=SplitResponse,
-    responses={code: {"model": ErrorResponse} for code in (404, 409, 500)},
+    responses={code: {"model": ErrorResponse} for code in (403, 404, 409, 500)},
 )
 def mark_shipped(
     quotation_id: str,
@@ -486,6 +517,10 @@ def mark_shipped(
     quotation = db_get_quotation(db, _parse_id(quotation_id), user)
     if quotation is None:
         raise _not_found(f"No quotation {quotation_id}")
+
+    block = lifecycle_util_fulfillment_block(quotation, user)
+    if block is not None:
+        raise _forbidden(block)
 
     if quotation.fulfillment_status not in (
         FulfilStatus.SPLIT_ACCEPTED,
@@ -518,5 +553,5 @@ def mark_shipped(
     return SplitResponse(
         success=True,
         message="Marked as shipped",
-        data=_to_split_data(db, quotation),
+        data=_to_split_data(db, quotation, user),
     )

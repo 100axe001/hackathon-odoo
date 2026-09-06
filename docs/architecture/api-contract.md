@@ -27,8 +27,8 @@ the route guard in the browser only decides what to render.
 | `GET` | `/quotations/{quotation_id}/approval-detail` | Any internal | Why this quotation was flagged, plus the chain and the audit trail. |
 | `POST` | `/quotations/{quotation_id}/approve` | Any internal | Approve, return, or reject the step currently waiting on this caller. |
 | `GET` | `/quotations/{quotation_id}/fulfillment-split` | Any internal | The recommended split. |
-| `POST` | `/quotations/{quotation_id}/fulfillment/accept` | Any internal | Commit the suggested split and reserve the stock it uses. |
-| `POST` | `/quotations/{quotation_id}/fulfillment/override` | Any internal | Replace the split with numbers a human chose. |
+| `POST` | `/quotations/{quotation_id}/fulfillment/accept` | The deal's rep, or admin | Commit the suggested split and reserve the stock it uses. |
+| `POST` | `/quotations/{quotation_id}/fulfillment/override` | The deal's rep, or admin | Replace the split with numbers a human chose. |
 | `GET` | `/quotations/{quotation_id}/journey` | Any internal | Where this deal stands across quotation-to-cash, and the one next step. |
 | `POST` | `/quotations/{quotation_id}/lines` | Any internal | Add a product to the quotation and re-score. |
 | `PATCH` | `/quotations/{quotation_id}/lines/{line_id}` | Any internal | Validate one line's discount against its own ceiling. |
