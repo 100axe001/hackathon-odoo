@@ -213,6 +213,29 @@ def db_reservations_by_row(
     }
 
 
+def db_release_quotation_stock(session: Session, quotation: Quotation) -> None:
+    """Hand back everything this quotation was holding.
+
+    Its allocation rows cascade away with it, so without this the reserved units
+    would stay reserved against a quotation that no longer exists - stock nobody
+    could ever release.
+
+    Committed splits only, for the same reason db_reservations_by_row filters
+    them: a suggested split writes allocation rows without reserving anything,
+    so releasing against one would give away units another deal is holding.
+    """
+    if quotation.fulfillment_status not in (
+        FulfilStatus.SPLIT_ACCEPTED,
+        FulfilStatus.OVERRIDDEN,
+        FulfilStatus.SHIPPED,
+    ):
+        return
+    for row in db_list_allocations(session, quotation.id):
+        if row.warehouse_id is not None:
+            db_release_stock(session, row.warehouse_id, row.product_id, row.qty)
+    session.flush()
+
+
 def db_stocked_product_ids(session: Session) -> set[int]:
     """Products that are held as inventory somewhere.
 

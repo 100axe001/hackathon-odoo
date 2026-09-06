@@ -149,6 +149,11 @@ def approval_detail(
             explanation=pricing_util_explain(result),
             lines=flagged,
             stage=_stage_label(quotation, step),
+            rep=quotation.rep.full_name,
+            # The decision endpoint refuses a rep acting on their own quotation.
+            # The screen reads this so it can say why instead of offering three
+            # buttons that all come back 403.
+            own=quotation.rep_id == user.id,
             steps=[
                 StepRow(
                     role=s.required_role,

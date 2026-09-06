@@ -6,6 +6,7 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.models.billing import Invoice, Subscription
 from app.models.config import CategoryCeiling, RiskThreshold
 from app.models.enums import QuoteStatus, UserRole
 from app.models.identity import Customer, User
@@ -99,6 +100,30 @@ def db_set_quotation_status(
     session.commit()
     session.refresh(quotation)
     return quotation
+
+
+def db_delete_quotation(session: Session, quotation: Quotation) -> None:
+    """Remove a quotation and everything hanging off it.
+
+    Lines, approval steps, the audit trail, the customer conversation, health
+    flags and allocations all carry ON DELETE CASCADE, so the database takes
+    them. Invoices and subscriptions deliberately do not - the caller checks for
+    those first, and the missing cascade is the backstop if it ever forgets.
+    """
+    session.delete(quotation)
+    session.commit()
+
+
+def db_billed_quotation_ids(session: Session) -> set[int]:
+    """Quotations that have an invoice or a subscription against them.
+
+    Read in one query rather than per row: the list screen needs this for every
+    quotation it shows, and asking once per row turned a page render into eighty
+    round trips.
+    """
+    invoiced = session.scalars(select(Invoice.quotation_id).distinct()).all()
+    subscribed = session.scalars(select(Subscription.quotation_id).distinct()).all()
+    return set(invoiced) | set(subscribed)
 
 
 def db_get_line(session: Session, line_id: int) -> QuotationLine | None:

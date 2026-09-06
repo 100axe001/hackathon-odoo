@@ -23,6 +23,7 @@ the route guard in the browser only decides what to render.
 | `GET` | `/quotations` | Any internal | Every quotation the caller may see. A rep sees only their own. |
 | `POST` | `/quotations` | Any internal | Open an empty draft for a customer. |
 | `GET` | `/quotations/{quotation_id}` | Any internal |  |
+| `DELETE` | `/quotations/{quotation_id}` | Its creator | Throw away a quotation you opened. Refused once it has been billed or confirmed. |
 | `GET` | `/quotations/{quotation_id}/approval-detail` | Any internal | Why this quotation was flagged, plus the chain and the audit trail. |
 | `POST` | `/quotations/{quotation_id}/approve` | Any internal | Approve, return, or reject the step currently waiting on this caller. |
 | `GET` | `/quotations/{quotation_id}/fulfillment-split` | Any internal | The recommended split. |

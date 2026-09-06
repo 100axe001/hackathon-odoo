@@ -77,6 +77,10 @@ def list_approvals(
                     blended_risk=quotation.risk_level or "LOW",
                     stage=step.required_role if step else "Complete",
                     assigned_to=step.required_role if step else "-",
+                    # Nobody signs off their own discount. Saying so in the
+                    # queue beats letting a reviewer open their own quotation
+                    # and meet a 403 at the last click.
+                    own=quotation.rep_id == user.id,
                 )
             )
         except Exception as e:

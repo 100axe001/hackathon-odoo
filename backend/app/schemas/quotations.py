@@ -11,11 +11,21 @@ class QuotationSummary(BaseModel):
     amount: float
     status: str
 
+    # Decided by the server, never by the screen: the same rule answers this and
+    # the DELETE endpoint, so a button cannot offer what the API will refuse.
+    can_delete: bool = False
+
 
 class ListQuotationsResponse(BaseModel):
     success: bool
     message: str
     data: list[QuotationSummary]
+
+
+class DeleteQuotationResponse(BaseModel):
+    success: bool
+    message: str
+    data: QuotationSummary
 
 
 class LineData(BaseModel):
@@ -49,6 +59,8 @@ class QuotationDetailData(BaseModel):
     # the reason lived in an audit trail their screen does not show.
     returned_by: str | None = None
     returned_note: str | None = None
+
+    can_delete: bool = False
 
 
 class QuotationDetailResponse(BaseModel):
@@ -151,6 +163,11 @@ class ApprovalRow(BaseModel):
     stage: str
     assigned_to: str
 
+    # Whether the caller wrote this quotation. Nobody signs off their own
+    # discount, so the queue says so rather than letting them open it and be
+    # refused at the last click.
+    own: bool = False
+
 
 class ListApprovalsResponse(BaseModel):
     success: bool
@@ -189,6 +206,9 @@ class ApprovalDetailData(BaseModel):
     stage: str
     steps: list[StepRow]
     audit_trail: list[AuditRow]
+
+    rep: str
+    own: bool = False
 
 
 class ApprovalDetailResponse(BaseModel):

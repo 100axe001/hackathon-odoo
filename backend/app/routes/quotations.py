@@ -9,8 +9,11 @@ from sqlalchemy.orm import Session
 from app.database.billing import db_invoices_for_quotation
 from app.database.config import db_get_upsell_rule
 from app.database.portal import db_add_negotiation_message, db_list_negotiation
+from app.database.fulfillment import db_release_quotation_stock
 from app.database.quotations import (
+    db_billed_quotation_ids,
     db_create_quotation,
+    db_delete_quotation,
     db_get_customer,
     db_get_line,
     db_get_product,
@@ -30,6 +33,7 @@ from app.schemas.quotations import (
     AddLineResponse,
     CreateQuotationRequest,
     CreateQuotationResponse,
+    DeleteQuotationResponse,
     ErrorResponse,
     JourneyData,
     JourneyResponse,
@@ -61,6 +65,10 @@ from app.utils.approval import (
     record_audit,
 )
 from app.utils.journey import journey_util_next, journey_util_stages
+from app.utils.quotation_lifecycle import (
+    lifecycle_util_can_delete,
+    lifecycle_util_delete_block,
+)
 from app.utils.margin import margin_util_quotation
 from app.utils.quotation_pricing import pricing_util_explain, pricing_util_score
 from app.utils.upsell import (
@@ -96,6 +104,24 @@ def _bad_request(message: str) -> HTTPException:
         status_code=status.HTTP_400_BAD_REQUEST,
         detail=ErrorResponse(
             success=False, error="Bad Request", message=message
+        ).model_dump(),
+    )
+
+
+def _forbidden(message: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail=ErrorResponse(
+            success=False, error="Forbidden", message=message
+        ).model_dump(),
+    )
+
+
+def _conflict(message: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=ErrorResponse(
+            success=False, error="Conflict", message=message
         ).model_dump(),
     )
 
@@ -139,7 +165,7 @@ def _refusal(current: str, target: str) -> str:
     return f"Cannot drag from {current} to {target}. {reason}"
 
 
-def _to_summary(quotation) -> QuotationSummary:
+def _to_summary(quotation, *, can_delete: bool = False) -> QuotationSummary:
     # Computed from the lines rather than read from total_net_value. That column
     # is only written when a quotation is scored, so an unopened draft would
     # list as $0 - which is what the kanban and the list both showed.
@@ -158,6 +184,7 @@ def _to_summary(quotation) -> QuotationSummary:
         customer_name=quotation.customer.name,
         amount=float(net),
         status=quotation.status,
+        can_delete=can_delete,
     )
 
 
@@ -170,10 +197,21 @@ def list_quotations(
     db: Session = Depends(get_db), user: User = Depends(require_internal)
 ) -> ListQuotationsResponse:
     """Every quotation the caller may see. A rep sees only their own."""
+    # One query for the whole page rather than one per row - the delete rule
+    # needs to know which quotations have money against them.
+    billed = db_billed_quotation_ids(db)
+
     rows = []
     for quotation in db_list_quotations(db, user):
         try:
-            rows.append(_to_summary(quotation))
+            rows.append(
+                _to_summary(
+                    quotation,
+                    can_delete=lifecycle_util_can_delete(
+                        quotation, user, billed=quotation.id in billed
+                    ),
+                )
+            )
         except (TypeError, ValueError, AttributeError) as e:
             # One unusable record must not 500 the listing and hide the rest.
             # Deliberately not a bare Exception: a broad catch here silently
@@ -188,10 +226,13 @@ def list_quotations(
     )
 
 
-def _to_detail(session: Session, quotation, lines) -> QuotationDetailData:
+def _to_detail(session: Session, quotation, lines, user) -> QuotationDetailData:
     """Detail payload including live margin - PS section 4 B3."""
     margin, margin_pct = margin_util_quotation(quotation.lines)
     returned_by, returned_note = _returned_notice(session, quotation)
+    can_delete = lifecycle_util_can_delete(
+        quotation, user, billed=quotation.id in db_billed_quotation_ids(session)
+    )
     return QuotationDetailData(
         id=f"q{quotation.id}",
         number=quotation.number,
@@ -205,6 +246,7 @@ def _to_detail(session: Session, quotation, lines) -> QuotationDetailData:
         risk_level=quotation.risk_level,
         returned_by=returned_by,
         returned_note=returned_note,
+        can_delete=can_delete,
     )
 
 
@@ -275,7 +317,51 @@ def create_quotation(
     return CreateQuotationResponse(
         success=True,
         message=f"{quotation.number} created",
-        data=_to_detail(db, quotation, []),
+        data=_to_detail(db, quotation, [], user),
+    )
+
+
+@router.delete(
+    "/{quotation_id}",
+    response_model=DeleteQuotationResponse,
+    responses={code: {"model": ErrorResponse} for code in (403, 404, 409, 500)},
+)
+def delete_quotation(
+    quotation_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_internal),
+) -> DeleteQuotationResponse:
+    """Throw away a quotation you opened.
+
+    Whoever created it may delete it, sales rep or admin alike - the same person
+    who could add every line to it can drop the whole thing. Someone else's is
+    not yours to remove, and neither is one that has been billed or confirmed.
+    """
+    quotation = db_get_quotation(db, _parse_id(quotation_id), user)
+    if quotation is None:
+        raise _not_found(f"No quotation {quotation_id}")
+
+    billed = quotation.id in db_billed_quotation_ids(db)
+    block = lifecycle_util_delete_block(quotation, user, billed=billed)
+    if block:
+        # Not yours is a 403; yours but past the point of no return is a 409.
+        # Collapsing both into one status would tell a rep to go and find the
+        # owner of a quotation they already own.
+        raise _forbidden(block) if quotation.rep_id != user.id else _conflict(block)
+
+    # Snapshot before the row goes, so the caller gets back what it removed.
+    removed = _to_summary(quotation, can_delete=True)
+    number = quotation.number
+    # Reservations are released first: the allocation rows cascade away with the
+    # quotation, and reserved units with no row to release them are gone for good.
+    db_release_quotation_stock(db, quotation)
+    db_delete_quotation(db, quotation)
+
+    logger.info("%s deleted %s", user.email, number)
+    return DeleteQuotationResponse(
+        success=True,
+        message=f"{number} deleted",
+        data=removed,
     )
 
 
@@ -314,7 +400,7 @@ def get_quotation(
     return QuotationDetailResponse(
         success=True,
         message="Quotation retrieved",
-        data=_to_detail(db, quotation, lines),
+        data=_to_detail(db, quotation, lines, user),
     )
 
 
@@ -543,7 +629,7 @@ def add_line(
     return AddLineResponse(
         success=True,
         message=f"{product.name} added",
-        data=_to_detail(db, quotation, _line_rows(quotation)),
+        data=_to_detail(db, quotation, _line_rows(quotation), user),
     )
 
 
@@ -572,12 +658,19 @@ def change_stage(
     if target not in _STAGE_NAMES:
         raise _bad_request(f"{target!r} is not a quotation stage")
 
+    # The board merges this row into the card it just moved, so the flag has to
+    # come back with it - defaulting it here made the delete action vanish from
+    # every card that had been dragged.
+    deletable = lifecycle_util_can_delete(
+        quotation, user, billed=quotation.id in db_billed_quotation_ids(db)
+    )
+
     # Dropping a card back on its own column is a no-op, not a failure.
     if target == quotation.status:
         return StageChangeResponse(
             success=True,
             message=f"Already in {target}",
-            data=_to_summary(quotation),
+            data=_to_summary(quotation, can_delete=deletable),
         )
 
     if (quotation.status, target) not in _PIPELINE_MOVES:
@@ -599,7 +692,7 @@ def change_stage(
     return StageChangeResponse(
         success=True,
         message=f"Moved to {target}",
-        data=_to_summary(quotation),
+        data=_to_summary(quotation, can_delete=deletable),
     )
 
 
