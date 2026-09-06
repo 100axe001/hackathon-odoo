@@ -18,6 +18,9 @@ export function InvoicesScreen() {
   }, []);
   const unpaid = data.filter((i) => i.status === "Unpaid").length;
   const paid = data.filter((i) => i.status === "Paid").length;
+  // Part-paid invoices were counted in neither pill, so the two numbers did
+  // not add up to the table beneath them.
+  const partial = data.filter((i) => i.status === "Partial").length;
   if (loadError)
     return (
       <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
@@ -28,6 +31,7 @@ export function InvoicesScreen() {
       <PageHeader title="Invoices" />
       <div className="flex gap-3 mb-4">
         <StatPill label="Unpaid" count={unpaid} tone="danger" />
+        <StatPill label="Partial" count={partial} tone="warn" />
         <StatPill label="Paid" count={paid} tone="success" />
       </div>
       <Card>

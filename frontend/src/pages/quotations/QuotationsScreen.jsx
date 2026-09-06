@@ -48,6 +48,15 @@ export function QuotationsScreen() {
     loadQuotations().then(setData).catch(setLoadError);
   }, []);
 
+  // Consume the request once. Router state survives a reload, so leaving it in
+  // place reopened the picker on every later visit to this screen - and its
+  // full-screen overlay swallowed clicks on everything beneath.
+  useEffect(() => {
+    if (location.state?.newQuotation) {
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
+
   const open = (id) => navigate(`/quotations/${id}`);
 
   const start = async (customer) => {
