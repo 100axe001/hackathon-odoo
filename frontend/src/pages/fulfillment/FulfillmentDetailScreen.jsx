@@ -13,16 +13,18 @@ import { DealJourney } from "@/components/quotations/DealJourney";
 import { C } from "@/constants/theme";
 import {
   acceptSplit,
+  consolidateBackorder,
   loadFulfillmentSplit,
+  markShipped,
   overrideSplit,
   restock,
 } from "@/api/api-functions/fulfillment";
+import { loadWarehouses } from "@/api/api-functions/admin";
 
 export function FulfillmentDetailScreen() {
   const { id } = useParams();
   const [detail, setDetail] = useState(null);
   const [loadError, setLoadError] = useState(null);
-  const [restocked, setRestocked] = useState(false);
   const [toast, setToast] = useState("");
   // PS section 4 B6 pairs "Accept Suggested Split" with "Manual Override".
   // Override turns the same table editable rather than opening a second screen,
@@ -67,15 +69,43 @@ export function FulfillmentDetailScreen() {
     }
   };
 
+  // Restocks the product that is actually short, at a warehouse that already
+  // stocks it. The old version sent literal ids (warehouse 1, product 1) and a
+  // banner naming East Depot whatever was really outstanding.
   const simulateRestock = async () => {
+    const short = detail.backorder[0];
+    if (!short) return;
     try {
-      await restock(1, 1, 100);
-      const updated = await loadFulfillmentSplit(id);
+      const warehouses = await loadWarehouses();
+      const target = warehouses.find((w) => w.active) ?? warehouses[0];
+      await restock(target.id, short.product_id, short.qty);
+      setDetail(await loadFulfillmentSplit(id));
+      setToast(`${short.qty} × ${short.product} arrived at ${target.name}`);
+    } catch (err) {
+      setToast(err.detail || "Could not restock.");
+    }
+  };
+
+  const consolidate = async () => {
+    try {
+      const updated = await consolidateBackorder(id);
       setDetail(updated);
-      setRestocked(true);
-      setToast("Stock arrived — the backorder can now be consolidated");
-    } catch {
-      setToast("Could not restock.");
+      setToast(
+        updated.backordered === 0
+          ? "Backorder cleared — the whole order is now covered"
+          : `Consolidated, ${updated.backordered} unit(s) still outstanding`,
+      );
+    } catch (err) {
+      setToast(err.detail || "Could not consolidate the backorder.");
+    }
+  };
+
+  const ship = async () => {
+    try {
+      setDetail(await markShipped(id));
+      setToast("Marked as shipped — this order leaves the fulfillment queue");
+    } catch (err) {
+      setToast(err.detail || "Could not mark this as shipped.");
     }
   };
 
@@ -106,7 +136,26 @@ export function FulfillmentDetailScreen() {
               className="text-xs uppercase tracking-wide"
               style={{ color: C.muted }}
             >
-              Shipments
+              Units covered
+            </div>
+            <div
+              className="text-xl font-semibold tabular-nums"
+              style={{
+                color:
+                  detail.fulfilled_units === detail.ordered_units
+                    ? C.successText
+                    : C.text,
+              }}
+            >
+              {detail.fulfilled_units}/{detail.ordered_units}
+            </div>
+          </div>
+          <div>
+            <div
+              className="text-xs uppercase tracking-wide"
+              style={{ color: C.muted }}
+            >
+              Parcels
             </div>
             <div
               className="text-xl font-semibold tabular-nums"
@@ -148,9 +197,11 @@ export function FulfillmentDetailScreen() {
           <div className="ml-auto text-right">
             <Badge status={detail.status} />
             <div className="text-xs mt-1" style={{ color: C.muted }}>
-              {detail.complete
-                ? "Every line is covered from stock"
-                : `${detail.backordered} unit(s) could not be covered`}
+              {detail.nothing_to_ship
+                ? "Services and subscriptions only — nothing to ship"
+                : detail.complete
+                  ? "Every line is covered from stock"
+                  : `${detail.backordered} unit(s) could not be covered`}
             </div>
           </div>
         </div>
@@ -214,29 +265,132 @@ export function FulfillmentDetailScreen() {
         )}
       </Card>
 
-      <div className="mb-6">
-        <InfoBanner
-          tone="neutral"
-          action={
-            <Button variant="secondary" onClick={simulateRestock}>
-              Simulate Restock
-            </Button>
-          }
-        >
-          {restocked
-            ? "East Depot has restocked — a consolidated shipment is now available."
-            : "Consolidate Remaining Backorder prompt will appear automatically once East Depot restocks."}
-        </InfoBanner>
-      </div>
+      {/* Parcels, not rows. A row is one product from one warehouse; a leg is
+          everything that warehouse sends, which is what actually arrives. */}
+      {detail.legs.length > 0 && (
+        <Card className="mb-6">
+          <div
+            className="text-base font-semibold mb-3"
+            style={{ color: C.text }}
+          >
+            Parcels
+          </div>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <Th>Ships from</Th>
+                <Th>Region</Th>
+                <Th right>Units</Th>
+                <Th right>Product lines</Th>
+                <Th right>Cost</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {detail.legs.map((leg, i) => (
+                <Tr key={i}>
+                  <Td>
+                    {leg.warehouse_id === null ? (
+                      <Badge status="Pending" label="Not yet sourced" />
+                    ) : (
+                      leg.warehouse
+                    )}
+                  </Td>
+                  <Td style={{ color: C.muted }}>{leg.region || "—"}</Td>
+                  <Td right>{leg.units}</Td>
+                  <Td right style={{ color: C.muted }}>
+                    {leg.product_lines}
+                  </Td>
+                  <Td right style={{ color: C.muted }}>
+                    ${leg.cost}
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
 
-      <div className="flex justify-end gap-3">
-        <Button variant="secondary" onClick={() => setOverride((v) => !v)}>
-          {override ? "Cancel Override" : "Manual Override"}
-        </Button>
-        <Button variant="primary" onClick={commit}>
-          {override ? "Save Manual Split" : "Accept Suggested Split"}
-        </Button>
-      </div>
+      {/* PS 4-B6: when stock arrives the remaining backorder should be
+          consolidated. This says exactly what is short and whether anywhere
+          can cover it yet, rather than naming a warehouse in a fixed string. */}
+      {detail.backorder.length > 0 && (
+        <Card className="mb-6">
+          <div
+            className="text-base font-semibold mb-3"
+            style={{ color: C.text }}
+          >
+            Outstanding
+          </div>
+          <table className="w-full border-collapse mb-4">
+            <thead>
+              <tr>
+                <Th>Product</Th>
+                <Th right>Short by</Th>
+                <Th right>Available now</Th>
+                <Th>Could come from</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {detail.backorder.map((row, i) => (
+                <Tr key={i}>
+                  <Td>{row.product}</Td>
+                  <Td right style={{ color: C.dangerText }}>
+                    {row.qty}
+                  </Td>
+                  <Td right>{row.available_now}</Td>
+                  <Td style={{ color: C.muted }}>
+                    {row.sources.length
+                      ? row.sources.join(", ")
+                      : "Nowhere yet"}
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </table>
+
+          <InfoBanner
+            tone={detail.can_consolidate ? "success" : "warn"}
+            action={
+              detail.can_consolidate ? (
+                <Button variant="primary" onClick={consolidate}>
+                  Consolidate Remaining Backorder
+                </Button>
+              ) : (
+                <Button variant="secondary" onClick={simulateRestock}>
+                  Simulate Restock
+                </Button>
+              )
+            }
+          >
+            {detail.can_consolidate
+              ? "Stock has arrived. Consolidating pulls the outstanding units into this order."
+              : "No warehouse can cover this yet. Restocking makes the consolidation available."}
+          </InfoBanner>
+        </Card>
+      )}
+
+      {detail.status === "SHIPPED" ? (
+        <InfoBanner tone="success">
+          Shipped{detail.shipped_at ? ` on ${detail.shipped_at}` : ""} in{" "}
+          {detail.total_shipments} parcel(s). This order has left the
+          fulfillment queue.
+        </InfoBanner>
+      ) : (
+        <div className="flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setOverride((v) => !v)}>
+            {override ? "Cancel Override" : "Manual Override"}
+          </Button>
+          {detail.can_ship ? (
+            <Button variant="success" onClick={ship}>
+              Mark Shipped
+            </Button>
+          ) : (
+            <Button variant="primary" onClick={commit}>
+              {override ? "Save Manual Split" : "Accept Suggested Split"}
+            </Button>
+          )}
+        </div>
+      )}
       <Toast message={toast} onClose={() => setToast("")} />
     </Transition>
   );

@@ -37,6 +37,8 @@ export const fulfillmentEndpoints = {
   accept: (id) => `/quotations/${enc(id)}/fulfillment/accept`,
   restock: "/fulfillment/restock",
   override: (id) => `/quotations/${enc(id)}/fulfillment/override`,
+  consolidate: (id) => `/quotations/${enc(id)}/fulfillment/consolidate`,
+  ship: (id) => `/quotations/${enc(id)}/fulfillment/ship`,
 };
 
 export const subscriptionEndpoints = {
