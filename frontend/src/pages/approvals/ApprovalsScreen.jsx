@@ -6,16 +6,23 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatPill } from "@/components/ui/StatPill";
 import { Td, Th, Tr } from "@/components/ui/Table";
 import { Transition } from "@/components/ui/Transition";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { C } from "@/constants/theme";
 import { loadApprovals } from "@/api/api-functions/approvals";
 
 export function ApprovalsScreen() {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
+  const [loadError, setLoadError] = useState(null);
   const [pendingOnly, setPendingOnly] = useState(true);
   useEffect(() => {
-    loadApprovals().then(setData);
+    loadApprovals().then(setData).catch(setLoadError);
   }, []);
+  if (loadError)
+    return (
+      <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
+    );
+
   return (
     <Transition keyProp="approvals">
       <PageHeader title="Approvals" />

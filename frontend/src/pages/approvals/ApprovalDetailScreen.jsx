@@ -3,26 +3,45 @@ import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { InfoBanner } from "@/components/ui/InfoBanner";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Stepper } from "@/components/ui/Stepper";
 import { Td, Th, Tr } from "@/components/ui/Table";
 import { Toast } from "@/components/ui/Toast";
 import { Transition } from "@/components/ui/Transition";
+import { LoadFailed } from "@/components/ui/LoadFailed";
+import { DealJourney } from "@/components/quotations/DealJourney";
 import { C } from "@/constants/theme";
 import {
   decideApproval,
   loadApprovalDetail,
 } from "@/api/api-functions/approvals";
 
+// SALES_MANAGER reads as a database value, not as a person's job.
+function roleName(role) {
+  return String(role)
+    .toLowerCase()
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 export function ApprovalDetailScreen() {
   const navigate = useNavigate();
   const { id } = useParams();
   const [detail, setDetail] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [toast, setToast] = useState("");
   const [comment, setComment] = useState("");
+  const [outcome, setOutcome] = useState(null);
+  const [decided, setDecided] = useState(false);
   useEffect(() => {
-    loadApprovalDetail(id).then(setDetail);
+    loadApprovalDetail(id).then(setDetail).catch(setLoadError);
   }, [id]);
+  if (loadError)
+    return (
+      <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
+    );
   if (!detail) return null;
 
   const worst = detail.lines.reduce(
@@ -44,21 +63,30 @@ export function ApprovalDetailScreen() {
   const decide = async (decision) => {
     try {
       const result = await decideApproval(id, decision, comment || null);
-      setToast(
-        result.complete
-          ? `Approved - chain complete`
+
+      // Reported in place, with the queue one click away. The old version put
+      // this in a toast and navigated away from it after 1.2 seconds, so the
+      // reviewer never learned what their own decision had done.
+      setOutcome({
+        tone: result.status === "Rejected" ? "danger" : "success",
+        text: result.complete
+          ? `Approved. Every reviewer has now signed off, so ${detail.quotation} moves to fulfillment.`
           : result.stage
-            ? `Recorded. Now with ${result.stage}`
-            : `Quotation ${result.status}`,
-      );
-      setTimeout(() => navigate("/approvals"), 1200);
-    } catch {
-      setToast("Not permitted. You may not act on this step.");
+            ? `Recorded. ${detail.quotation} now needs ${roleName(result.stage)} before it can proceed.`
+            : `${detail.quotation} is now ${result.status}. It goes back to the rep to revise and resubmit.`,
+      });
+      setDecided(true);
+      loadApprovalDetail(id)
+        .then(setDetail)
+        .catch(() => {});
+    } catch (err) {
+      setToast(err.detail || "You may not act on this step.");
     }
   };
 
   return (
     <Transition keyProp={`ad-${id}`}>
+      <DealJourney quotationId={id} />
       <PageHeader title={`${detail.quotation} — ${detail.customer}`} />
       <div className="flex gap-2 mb-6">
         <Badge
@@ -145,7 +173,7 @@ export function ApprovalDetailScreen() {
         </table>
       </Card>
 
-      <div className="mb-4">
+      <div className="mb-4" hidden={decided}>
         <label className="text-sm mb-1 block" style={{ color: C.text }}>
           Reviewer comment
         </label>
@@ -159,17 +187,30 @@ export function ApprovalDetailScreen() {
         />
       </div>
 
-      <div className="flex justify-end gap-3">
-        <Button variant="destructive" onClick={() => decide("reject")}>
-          Reject
-        </Button>
-        <Button variant="warning" onClick={() => decide("return")}>
-          Return for Revision
-        </Button>
-        <Button variant="success" onClick={() => decide("approve")}>
-          Approve
-        </Button>
-      </div>
+      {outcome ? (
+        <InfoBanner
+          tone={outcome.tone}
+          action={
+            <Button variant="secondary" onClick={() => navigate("/approvals")}>
+              Back to queue
+            </Button>
+          }
+        >
+          {outcome.text}
+        </InfoBanner>
+      ) : (
+        <div className="flex justify-end gap-3">
+          <Button variant="destructive" onClick={() => decide("reject")}>
+            Reject
+          </Button>
+          <Button variant="warning" onClick={() => decide("return")}>
+            Return for Revision
+          </Button>
+          <Button variant="success" onClick={() => decide("approve")}>
+            Approve
+          </Button>
+        </div>
+      )}
       <Toast message={toast} onClose={() => setToast("")} />
     </Transition>
   );

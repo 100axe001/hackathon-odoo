@@ -5,15 +5,21 @@ import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Transition } from "@/components/ui/Transition";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { C } from "@/constants/theme";
 import { loadDashboard } from "@/api/api-functions/dashboard";
 
 export function DashboardScreen() {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   useEffect(() => {
-    loadDashboard().then(setData);
+    loadDashboard().then(setData).catch(setLoadError);
   }, []);
+  if (loadError)
+    return (
+      <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
+    );
   if (!data) return null;
   return (
     <Transition keyProp="dashboard">

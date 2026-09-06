@@ -6,10 +6,17 @@ import { Card } from "@/components/ui/Card";
 import { FilterPill } from "@/components/ui/FilterPill";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Td, Th, Tr } from "@/components/ui/Table";
+import { Toast } from "@/components/ui/Toast";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { Transition } from "@/components/ui/Transition";
 import { ViewToggle } from "@/components/ui/ViewToggle";
+import { CustomerPicker } from "@/components/quotations/CustomerPicker";
 import { QuotationBoard } from "@/components/quotations/QuotationBoard";
-import { loadQuotations } from "@/api/api-functions/quotations";
+import {
+  changeQuotationStage,
+  createQuotation,
+  loadQuotations,
+} from "@/api/api-functions/quotations";
 
 const STAGES = [
   "Draft",
@@ -22,23 +29,64 @@ const STAGES = [
 export function QuotationsScreen() {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
+  const [loadError, setLoadError] = useState(null);
   const [filter, setFilter] = useState("All");
   // Board first: the wireframe's control reads "Switch to Table View", and PS
   // section 4 B1 lists Pipeline as a top-level view.
   const [view, setView] = useState("board");
+  const [picking, setPicking] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
-    loadQuotations().then(setData);
+    loadQuotations().then(setData).catch(setLoadError);
   }, []);
 
   const open = (id) => navigate(`/quotations/${id}`);
 
-  // Dragging a card to another column moves the deal's stage. Optimistic here;
-  // the backend will own the transition once the endpoint exists.
-  const move = (id, status) =>
+  const start = async (customer) => {
+    setPicking(false);
+    setStarting(true);
+    try {
+      const quotation = await createQuotation(customer.id);
+      open(quotation.id);
+    } catch {
+      setToast(`Could not start a quotation for ${customer.name}.`);
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  // Dragging a card moves the deal's stage. Optimistic so the board stays
+  // responsive, but the backend decides which moves are legal - submitting,
+  // approving and confirming own the rest - so a refusal puts the card back.
+  const move = (id, status) => {
+    // Revert only this card, not a whole-list snapshot: with two drags in
+    // flight, restoring the snapshot would discard the other one's reconciled row.
+    const previous = data.find((q) => q.id === id)?.status;
     setData((list) => list.map((q) => (q.id === id ? { ...q, status } : q)));
+
+    changeQuotationStage(id, status)
+      .then((row) =>
+        setData((list) =>
+          list.map((q) => (q.id === row.id ? { ...q, ...row } : q)),
+        ),
+      )
+      .catch((err) => {
+        setData((list) =>
+          list.map((q) => (q.id === id ? { ...q, status: previous } : q)),
+        );
+        // The server explains which endpoint owns the transition it refused.
+        setToast(err.detail || "Could not move that deal.");
+      });
+  };
   const filtered =
     filter === "All" ? data : data.filter((q) => q.status === filter);
+
+  if (loadError)
+    return (
+      <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
+    );
 
   return (
     <Transition keyProp="quotations">
@@ -55,8 +103,8 @@ export function QuotationsScreen() {
                 { value: "table", label: "Table" },
               ]}
             />
-            <Button variant="primary" onClick={() => open("q1")}>
-              + New Quotation
+            <Button variant="primary" onClick={() => setPicking(true)}>
+              {starting ? "Opening…" : "+ New Quotation"}
             </Button>
           </div>
         }
@@ -105,6 +153,13 @@ export function QuotationsScreen() {
           </table>
         </Card>
       )}
+
+      <CustomerPicker
+        open={picking}
+        onClose={() => setPicking(false)}
+        onPick={start}
+      />
+      {toast && <Toast message={toast} onClose={() => setToast("")} />}
     </Transition>
   );
 }
