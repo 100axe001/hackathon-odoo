@@ -1,7 +1,6 @@
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { TopNav } from "@/components/layout/TopNav";
-import { PortalDevSwitch } from "@/components/layout/PortalDevSwitch";
 import { C } from "@/constants/theme";
 
 // Internal shell: horizontal module bar, then the centred work area.
@@ -27,7 +26,6 @@ export function AppLayout() {
           <Outlet key={reloading ? "reloading" : location.pathname} />
         </div>
       </main>
-      <PortalDevSwitch />
     </div>
   );
 }

@@ -7,6 +7,7 @@ export function Button({
   onClick,
   className = "",
   type = "button",
+  disabled = false,
 }) {
   const base =
     "rounded-md px-4 py-2 text-sm font-medium transition-colors duration-150";
@@ -47,10 +48,16 @@ export function Button({
     <button
       type={type}
       onClick={onClick}
+      disabled={disabled}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className={`${base} ${className}`}
-      style={hover ? hoverStyles[variant] : styles[variant]}
+      style={{
+        ...(hover && !disabled ? hoverStyles[variant] : styles[variant]),
+        ...(disabled
+          ? { opacity: 0.45, cursor: "not-allowed" }
+          : { cursor: "pointer" }),
+      }}
     >
       {children}
     </button>
