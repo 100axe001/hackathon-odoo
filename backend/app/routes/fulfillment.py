@@ -129,6 +129,7 @@ def list_orders(
                 ),
                 warehouses=" + ".join(names) if names else "Not yet split",
                 handled_by=quotation.rep.full_name,
+                mine=quotation.rep_id == user.id,
             )
         )
 

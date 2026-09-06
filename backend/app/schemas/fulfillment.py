@@ -41,6 +41,11 @@ class OrderRow(BaseModel):
     warehouses: str
     handled_by: str = ""
 
+    # Whose queue this belongs in. The screen defaults to your own orders, and
+    # matching on the handler's name client-side would break on two people who
+    # share one.
+    mine: bool = False
+
 
 class ListOrdersResponse(BaseModel):
     success: bool
