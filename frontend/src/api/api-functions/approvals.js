@@ -1,13 +1,18 @@
 import { apiGet, apiSend } from "../client";
 import { approvalEndpoints } from "../apiEndpoints";
 
-// Expected: [{id, quotation, customer, blended_risk, stage, assigned_to}]
+// Expected: [{id, quotation, customer, blended_risk, stage, assigned_to, own}]
 export async function loadApprovals() {
   return apiGet(approvalEndpoints.list("pending"));
 }
 
 // Expected: { id, quotation, customer, blended_risk, customer_tier, explanation,
-//             lines, stage, steps: [{role, status, acted_by}], audit_trail }
+//             lines, stage, rep, own, steps: [{role, status, acted_by}],
+//             audit_trail }
+//
+// own means the caller wrote this quotation. Nobody signs off their own
+// discount, so the screen reads it rather than offering buttons the decision
+// endpoint will refuse.
 export async function loadApprovalDetail(id) {
   return apiGet(approvalEndpoints.detail(id));
 }

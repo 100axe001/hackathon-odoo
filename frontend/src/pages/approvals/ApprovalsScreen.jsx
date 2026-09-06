@@ -67,7 +67,16 @@ export function ApprovalsScreen() {
                   <Badge status={a.blended_risk} />
                 </Td>
                 <Td>{a.stage}</Td>
-                <Td>{a.assigned_to}</Td>
+                <Td>
+                  {a.assigned_to}
+                  {/* Yours is here to be watched, not acted on - the decision
+                      endpoint refuses a reviewer their own quotation. */}
+                  {a.own && (
+                    <span className="ml-2">
+                      <Badge status="Pending" label="Yours" />
+                    </span>
+                  )}
+                </Td>
               </Tr>
             ))}
           </tbody>

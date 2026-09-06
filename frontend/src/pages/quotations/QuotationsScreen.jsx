@@ -12,9 +12,11 @@ import { Transition } from "@/components/ui/Transition";
 import { ViewToggle } from "@/components/ui/ViewToggle";
 import { CustomerPicker } from "@/components/quotations/CustomerPicker";
 import { QuotationBoard } from "@/components/quotations/QuotationBoard";
+import { C } from "@/constants/theme";
 import {
   changeQuotationStage,
   createQuotation,
+  deleteQuotation,
   loadQuotations,
 } from "@/api/api-functions/quotations";
 
@@ -43,6 +45,9 @@ export function QuotationsScreen() {
   const [picking, setPicking] = useState(Boolean(location.state?.newQuotation));
   const [starting, setStarting] = useState(false);
   const [toast, setToast] = useState("");
+  // The id awaiting a second click. One row at a time, so confirming one and
+  // then clicking another cannot delete the wrong deal.
+  const [confirming, setConfirming] = useState(null);
 
   useEffect(() => {
     loadQuotations().then(setData).catch(setLoadError);
@@ -95,6 +100,19 @@ export function QuotationsScreen() {
         setToast(err.detail || "Could not move that deal.");
       });
   };
+  // Only the creator may delete, and not once a deal has been billed or
+  // confirmed - the server decides that and sends can_delete with each row.
+  const remove = async (id) => {
+    setConfirming(null);
+    try {
+      const gone = await deleteQuotation(id);
+      setData((list) => list.filter((q) => q.id !== id));
+      setToast(`${gone.customer_name}'s quotation was deleted.`);
+    } catch (err) {
+      setToast(err.detail || "Could not delete that quotation.");
+    }
+  };
+
   const filtered =
     filter === "All" ? data : data.filter((q) => q.status === filter);
 
@@ -152,6 +170,7 @@ export function QuotationsScreen() {
                 <Th>Customer</Th>
                 <Th right>Amount</Th>
                 <Th>Status</Th>
+                <Th right>{""}</Th>
               </tr>
             </thead>
             <tbody>
@@ -161,6 +180,44 @@ export function QuotationsScreen() {
                   <Td right>${q.amount.toLocaleString()}</Td>
                   <Td>
                     <Badge status={q.status} />
+                  </Td>
+                  <Td right>
+                    {/* Stop the click here: the row itself opens the
+                        quotation, and deleting one by trying to read it
+                        would be the worst possible surprise. */}
+                    {q.can_delete && (
+                      <span onClick={(e) => e.stopPropagation()}>
+                        {confirming === q.id ? (
+                          <span className="flex items-center justify-end gap-2">
+                            <span
+                              className="text-xs"
+                              style={{ color: C.dangerText }}
+                            >
+                              Delete?
+                            </span>
+                            <Button
+                              variant="secondary"
+                              onClick={() => setConfirming(null)}
+                            >
+                              Keep
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              onClick={() => remove(q.id)}
+                            >
+                              Delete
+                            </Button>
+                          </span>
+                        ) : (
+                          <Button
+                            variant="secondary"
+                            onClick={() => setConfirming(q.id)}
+                          >
+                            Delete
+                          </Button>
+                        )}
+                      </span>
+                    )}
                   </Td>
                 </Tr>
               ))}

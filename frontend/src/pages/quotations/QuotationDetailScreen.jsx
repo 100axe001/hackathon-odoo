@@ -6,12 +6,14 @@ import { Card } from "@/components/ui/Card";
 import { InfoBanner } from "@/components/ui/InfoBanner";
 import { Td, Th, Tr } from "@/components/ui/Table";
 import { Toast } from "@/components/ui/Toast";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { Transition } from "@/components/ui/Transition";
 import { ProductPicker } from "@/components/quotations/ProductPicker";
 import { CustomerThread } from "@/components/quotations/CustomerThread";
 import { DealJourney } from "@/components/quotations/DealJourney";
 import { C } from "@/constants/theme";
 import {
+  deleteQuotation,
   loadQuotationDetail,
   loadUpsells,
   patchDiscount,
@@ -36,12 +38,36 @@ export function QuotationDetailScreen() {
   const timers = useRef({});
   const orderTimer = useRef(null);
   const [outcome, setOutcome] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  // Two-step rather than a browser confirm(): the row and everything under it
+  // goes, so the second click names what it is about to destroy.
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
 
   useEffect(() => {
-    loadQuotationDetail(id).then(setDetail);
-    loadUpsells(id).then(setUpsells);
+    setLoadError(null);
+    // Catch both: deleting a quotation and then pressing Back asks for one that
+    // is gone, and an uncaught 404 left this screen permanently blank with the
+    // failure only visible in the console.
+    loadQuotationDetail(id).then(setDetail).catch(setLoadError);
+    loadUpsells(id)
+      .then(setUpsells)
+      .catch(() => setUpsells([]));
   }, [id]);
 
+  if (loadError)
+    return (
+      <LoadFailed
+        error={loadError}
+        onRetry={
+          loadError.status === 404
+            ? () => navigate("/quotations")
+            : () => window.location.reload()
+        }
+        retryLabel={
+          loadError.status === 404 ? "Back to quotations" : "Try again"
+        }
+      />
+    );
   if (!detail) return null;
 
   // Optimistic, then reconciled. Quantity moves the line total and the blended
@@ -187,6 +213,18 @@ export function QuotationDetailScreen() {
   // The backend decides. The client no longer guesses from the line badges -
   // a quote can be routed for approval by the blended path even when no single
   // line looks bad, which the old check could never have caught.
+  // Whether this is deletable is the server's call - it owns the ownership and
+  // billing rules - so the screen only renders what came back on the payload.
+  const remove = async () => {
+    try {
+      await deleteQuotation(id);
+      navigate("/quotations");
+    } catch (err) {
+      setConfirmingDelete(false);
+      setToast(err.detail || "Could not delete this quotation.");
+    }
+  };
+
   const submit = async () => {
     try {
       const result = await submitQuotation(id);
@@ -227,6 +265,30 @@ export function QuotationDetailScreen() {
             />
           )}
           <Badge status={detail.status} />
+          {detail.can_delete &&
+            (confirmingDelete ? (
+              <>
+                <span className="text-sm" style={{ color: C.dangerText }}>
+                  Delete {detail.number} and everything on it?
+                </span>
+                <Button
+                  variant="secondary"
+                  onClick={() => setConfirmingDelete(false)}
+                >
+                  Keep
+                </Button>
+                <Button variant="destructive" onClick={remove}>
+                  Delete
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="destructive"
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Delete
+              </Button>
+            ))}
         </div>
       </div>
 

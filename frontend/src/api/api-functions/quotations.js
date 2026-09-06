@@ -1,13 +1,25 @@
 import { apiGet, apiSend } from "../client";
 import { adminEndpoints, quotationEndpoints } from "../apiEndpoints";
 
-// Expected: [{id, customer_name, amount, status}]
+// Expected: [{id, customer_name, amount, status, can_delete}]
+//
+// can_delete is the server's answer, not a guess: the same rule backs the
+// DELETE endpoint, so the action is only offered where it will be honoured.
 export async function loadQuotations() {
   return apiGet(quotationEndpoints.list);
 }
 
+// Expected: the summary of the row that was removed.
+//
+// No fallback. Deleting is the one destructive thing an ordinary user can do,
+// so a failure has to be seen rather than swallowed into a success toast.
+export async function deleteQuotation(id) {
+  return apiSend(quotationEndpoints.detail(id), "DELETE");
+}
+
 // Expected: { id, number, customer_name, price_list, status, risk_level,
 //             margin, margin_pct, net_total, returned_by, returned_note,
+//             can_delete,
 //             lines: [{id, product, qty, price, discount_pct, limit_pct, status}] }
 //
 // returned_by/returned_note are set only while a Draft is back with the rep

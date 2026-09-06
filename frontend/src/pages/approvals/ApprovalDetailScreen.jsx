@@ -201,7 +201,7 @@ export function ApprovalDetailScreen() {
         </table>
       </Card>
 
-      <div className="mb-4" hidden={decided}>
+      <div className="mb-4" hidden={decided || detail.own}>
         <label className="text-sm mb-1 block" style={{ color: C.text }}>
           Reviewer comment
         </label>
@@ -225,6 +225,21 @@ export function ApprovalDetailScreen() {
           }
         >
           {outcome.text}
+        </InfoBanner>
+      ) : detail.own ? (
+        // The premise of the product: nobody signs off their own discount. The
+        // server refuses it either way; offering the buttons only meant finding
+        // that out at the last click.
+        <InfoBanner
+          tone="neutral"
+          action={
+            <Button variant="secondary" onClick={() => navigate("/approvals")}>
+              Back to queue
+            </Button>
+          }
+        >
+          You wrote {detail.quotation}, so you cannot approve, return or reject
+          it. It is waiting on {roleLabel(detail.stage)}.
         </InfoBanner>
       ) : (
         <div className="flex justify-end gap-3">
