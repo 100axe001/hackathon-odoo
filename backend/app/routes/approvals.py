@@ -16,6 +16,7 @@ from app.schemas.quotations import (
 )
 from app.utils.approval import (
     approval_util_current_step,
+    approval_util_in_queue,
 )
 
 logger = get_logger(__name__)
@@ -64,9 +65,11 @@ def _parse_id(raw: str) -> int:
 def list_approvals(
     db: Session = Depends(get_db), user: User = Depends(require_internal)
 ) -> ListApprovalsResponse:
-    """Everything waiting on a reviewer."""
+    """Everything waiting on this reviewer - not on somebody else."""
     rows = []
     for quotation in db_list_pending_approvals(db):
+        if not approval_util_in_queue(quotation, user):
+            continue
         try:
             step = approval_util_current_step(quotation)
             rows.append(

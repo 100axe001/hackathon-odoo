@@ -7,10 +7,10 @@ from sqlalchemy.orm import Session
 
 from app.database.dashboard import (
     db_count_open_quotations,
-    db_count_pending_approvals,
     db_get_quotation_number,
     db_recent_audit_log,
 )
+from app.database.quotations import db_list_pending_approvals
 from app.database.users import db_get_user_by_id
 from app.logging.setup_logging import get_logger
 from app.models.identity import User
@@ -21,6 +21,7 @@ from app.schemas.dashboard import (
     DashboardResponse,
     ErrorResponse,
 )
+from app.utils.approval import approval_util_in_queue
 from app.utils.deal_health import health_util_compute_flags
 
 logger = get_logger(__name__)
@@ -61,7 +62,13 @@ def summary(
     db: Session = Depends(get_db), user: User = Depends(require_internal)
 ) -> DashboardResponse:
     """Counts computed from the data, and the real audit trail as activity."""
-    pending = db_count_pending_approvals(db)
+    # Scoped the same way the queue is: a count that includes deals waiting on
+    # somebody else sends a reviewer to a screen with nothing on it for them.
+    pending = sum(
+        1
+        for quotation in db_list_pending_approvals(db)
+        if approval_util_in_queue(quotation, user)
+    )
     open_quotes = db_count_open_quotations(db)
     # Computed rather than counted from stored rows: those only exist once
     # someone opens the Deal Health board, so the landing page would say zero

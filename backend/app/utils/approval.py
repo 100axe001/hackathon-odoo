@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.config import ApprovalRule
-from app.models.enums import AuditAction, RiskLevel, StepStatus
+from app.models.enums import AuditAction, RiskLevel, StepStatus, UserRole
 from app.models.quotation import ApprovalStep, AuditLog, Quotation
 
 
@@ -88,6 +88,23 @@ def approval_util_current_step(quotation: Quotation) -> ApprovalStep | None:
     return next((s for s in quotation.steps if s.status == StepStatus.PENDING), None)
 
 
+def approval_util_in_queue(quotation: Quotation, user) -> bool:
+    """Whether this quotation belongs in that person's approval queue.
+
+    The queue used to be every pending quotation, so finance watched deals that
+    were waiting on a sales manager and could do nothing about. It is now what
+    is waiting on you - plus your own, which you cannot act on but do need to
+    see, and everything for an admin, who is the one person meant to see the
+    whole pipeline.
+    """
+    if user.role == UserRole.ADMIN:
+        return True
+    if quotation.rep_id == user.id:
+        return True
+    step = approval_util_current_step(quotation)
+    return step is not None and step.required_role == user.role
+
+
 def approval_util_is_complete(quotation: Quotation) -> bool:
     return bool(quotation.steps) and all(
         s.status == StepStatus.APPROVED for s in quotation.steps
@@ -126,6 +143,7 @@ __all__ = [
     "approval_util_build_chain",
     "approval_util_close_chain",
     "approval_util_current_step",
+    "approval_util_in_queue",
     "approval_util_is_complete",
     "approval_util_needs_approval",
     "approval_util_required_roles",

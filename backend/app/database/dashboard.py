@@ -7,17 +7,6 @@ from app.models.enums import QuoteStatus
 from app.models.quotation import AuditLog, Quotation
 
 
-def db_count_pending_approvals(session: Session) -> int:
-    return (
-        session.scalar(
-            select(func.count())
-            .select_from(Quotation)
-            .where(Quotation.status == QuoteStatus.PENDING_APPROVAL)
-        )
-        or 0
-    )
-
-
 def db_count_open_quotations(session: Session) -> int:
     """Everything still in play - a confirmed or rejected deal is not open."""
     return (

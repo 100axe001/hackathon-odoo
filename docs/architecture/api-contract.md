@@ -42,7 +42,7 @@ the route guard in the browser only decides what to render.
 
 | Method | Path | Who | What it does |
 | --- | --- | --- | --- |
-| `GET` | `/approvals` | Any internal | Everything waiting on a reviewer. |
+| `GET` | `/approvals` | Any internal | Everything waiting on this reviewer - not on somebody else. Admins see all. |
 
 ## Fulfillment
 
