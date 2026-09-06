@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.database.billing import db_invoices_for_quotation
 from app.database.config import db_get_upsell_rule
-from app.database.portal import db_add_negotiation_message, db_list_negotiation
 from app.database.fulfillment import db_release_quotation_stock
+from app.database.portal import db_add_negotiation_message, db_list_negotiation
 from app.database.quotations import (
     db_billed_quotation_ids,
     db_create_quotation,
@@ -65,11 +65,11 @@ from app.utils.approval import (
     record_audit,
 )
 from app.utils.journey import journey_util_next, journey_util_stages
+from app.utils.margin import margin_util_quotation
 from app.utils.quotation_lifecycle import (
     lifecycle_util_can_delete,
     lifecycle_util_delete_block,
 )
-from app.utils.margin import margin_util_quotation
 from app.utils.quotation_pricing import pricing_util_explain, pricing_util_score
 from app.utils.upsell import (
     upsell_util_clears_floor,
