@@ -191,6 +191,13 @@ export function FulfillmentScreen() {
               >
                 Customer
               </SortableTh>
+              <SortableTh
+                column="handled_by"
+                sort={orderSort}
+                onSort={sortOrders}
+              >
+                Handled by
+              </SortableTh>
               <SortableTh column="status" sort={orderSort} onSort={sortOrders}>
                 Status
               </SortableTh>
@@ -202,6 +209,9 @@ export function FulfillmentScreen() {
               <Tr key={o.id} onClick={() => navigate(`/fulfillment/${o.id}`)}>
                 <Td>{o.order}</Td>
                 <Td>{o.customer}</Td>
+                {/* Fulfillment is gated to the deal's own rep, so the queue has
+                    to say whose order it is before anyone opens one. */}
+                <Td>{o.handled_by}</Td>
                 <Td>
                   <Badge status={o.status} />
                 </Td>

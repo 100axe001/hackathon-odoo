@@ -8,7 +8,7 @@ export async function loadStock() {
   return apiGet(fulfillmentEndpoints.stock);
 }
 
-// Expected: [{id, order, customer, status, warehouses}]
+// Expected: [{id, order, customer, handled_by, status, warehouses}]
 export async function loadOrders() {
   return apiGet(fulfillmentEndpoints.orders("pending"));
 }
@@ -19,13 +19,16 @@ export async function loadOrders() {
 //             backorder: [{product_id, product, qty, available_now, sources}],
 //             ordered_units, fulfilled_units, total_shipments, total_cost,
 //             backordered, complete, can_consolidate, can_ship, shipped_at,
-//             nothing_to_ship }
+//             nothing_to_ship, handled_by, can_act }
+//
+// can_act is the server's ruling on whether this user may fulfil the order -
+// the screen renders it, it never works the rule out for itself.
 export async function loadFulfillmentSplit(id) {
   return apiGet(fulfillmentEndpoints.split(id));
 }
 
-// Expected: { id, customer, status, warehouses, total_shipments, total_cost,
-//             backordered, complete }
+// Expected: the same SplitData shape as loadFulfillmentSplit, including
+// handled_by and can_act.
 //
 // No mock fallback on any of these: a split that silently did nothing would
 // leave stock unreserved while the screen claimed otherwise.
@@ -37,7 +40,7 @@ export async function overrideSplit(id, allocations) {
   return apiSend(fulfillmentEndpoints.override(id), "POST", { allocations });
 }
 
-// Expected: the split, with the outstanding rows now allocated.
+// Expected: the SplitData shape, with the outstanding rows now allocated.
 //
 // Only the backorder is re-planned. Rows already reserved stay where they are,
 // because moving a committed allocation would release stock a warehouse holds.
@@ -45,7 +48,8 @@ export async function consolidateBackorder(id) {
   return apiSend(fulfillmentEndpoints.consolidate(id), "POST");
 }
 
-// Expected: the split, marked shipped. Refused while anything is outstanding.
+// Expected: the SplitData shape, marked shipped. Refused while anything is
+// outstanding.
 export async function markShipped(id) {
   return apiSend(fulfillmentEndpoints.ship(id), "POST");
 }

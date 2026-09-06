@@ -131,6 +131,19 @@ export function FulfillmentDetailScreen() {
           tell whether the order was actually covered. */}
       <Card className="mb-6">
         <div className="flex flex-wrap items-end gap-8">
+          {/* Whose order this is, alongside the numbers rather than under them:
+              only this rep or an admin can act on it. */}
+          <div>
+            <div
+              className="text-xs uppercase tracking-wide"
+              style={{ color: C.muted }}
+            >
+              Handled by
+            </div>
+            <div className="text-xl font-semibold" style={{ color: C.text }}>
+              {detail.handled_by}
+            </div>
+          </div>
           <div>
             <div
               className="text-xs uppercase tracking-wide"
@@ -351,7 +364,7 @@ export function FulfillmentDetailScreen() {
           <InfoBanner
             tone={detail.can_consolidate ? "success" : "warn"}
             action={
-              detail.can_consolidate ? (
+              !detail.can_act ? null : detail.can_consolidate ? (
                 <Button variant="primary" onClick={consolidate}>
                   Consolidate Remaining Backorder
                 </Button>
@@ -375,7 +388,7 @@ export function FulfillmentDetailScreen() {
           {detail.total_shipments} parcel(s). This order has left the
           fulfillment queue.
         </InfoBanner>
-      ) : (
+      ) : detail.can_act ? (
         <div className="flex justify-end gap-3">
           <Button variant="secondary" onClick={() => setOverride((v) => !v)}>
             {override ? "Cancel Override" : "Manual Override"}
@@ -390,6 +403,13 @@ export function FulfillmentDetailScreen() {
             </Button>
           )}
         </div>
+      ) : (
+        // can_act is the server's answer, so the screen never offers an action
+        // the API would refuse. Everything above stays readable.
+        <InfoBanner tone="warn">
+          This order is handled by {detail.handled_by}. Only that rep or an
+          admin can fulfil it.
+        </InfoBanner>
       )}
       <Toast message={toast} onClose={() => setToast("")} />
     </Transition>
