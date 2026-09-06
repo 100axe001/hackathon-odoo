@@ -124,9 +124,19 @@ def _approval_detail(quotation, state: str) -> str:
     pending = [s for s in quotation.steps if s.status == "PENDING"]
     if state == CURRENT and pending:
         return f"Waiting on {pending[0].required_role.replace('_', ' ').title()}"
+    # A returned quotation reads as one never submitted otherwise, which is the
+    # opposite of what happened to it.
+    if _was_returned(quotation):
+        return "Returned for revision"
     if quotation.risk_level:
         return f"{quotation.risk_level} risk"
     return "Not submitted"
+
+
+def _was_returned(quotation) -> bool:
+    return quotation.status == QuoteStatus.DRAFT and any(
+        s.status == "RETURNED" for s in quotation.steps
+    )
 
 
 def _fulfillment_detail(quotation, state: str) -> str:
@@ -149,7 +159,10 @@ def journey_util_next(quotation, invoices, stages: list[Stage]) -> Next | None:
         return None
 
     if current.key == "build":
-        return Next("Submit for approval", f"/quotations/{qid}", "Sales Rep")
+        label = (
+            "Revise and resubmit" if _was_returned(quotation) else "Submit for approval"
+        )
+        return Next(label, f"/quotations/{qid}", "Sales Rep")
     if current.key == "approval":
         pending = [s for s in quotation.steps if s.status == "PENDING"]
         role = (

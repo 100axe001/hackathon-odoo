@@ -128,10 +128,20 @@ Three checks, each blocking a specific way the chain could be sidestepped:
 | `step.required_role == caller.role`, first pending step only | Finance signing off before the manager has |
 | `quotation.status == Pending Approval` | Acting on a quotation that is no longer awaiting review |
 
-The third is the subtle one. **Returning** a quotation sets it back to Draft but leaves the
-later steps pending. Without this check, finance could approve that Draft and drive it to
-Approved without the rep ever revising it. There is a test that fails if the check is
-removed.
+The third is the subtle one. **Returning** a quotation sets it back to Draft. Without this
+check, finance could approve that Draft and drive it to Approved without the rep ever
+revising it. There is a test that fails if the check is removed.
+
+### Returning ends the whole chain
+
+A return or a rejection closes every step still pending, not only the one the reviewer
+acted on. Leaving the rest pending made a quotation that had gone **back** read as having
+moved **forward**: the decision reported the next role as its stage, the approval screen
+drew the stepper one step further along, and the kanban refused to move the card because
+an approval still looked outstanding — all while the deal sat in Draft with the rep.
+
+Nothing is lost by closing them, because resubmitting rebuilds the chain from the new risk
+level anyway.
 
 ### Rebuild, never append
 

@@ -44,6 +44,12 @@ class QuotationDetailData(BaseModel):
     status: str
     risk_level: str | None = None
 
+    # Set only while a Draft is a Draft because a reviewer sent it back. The rep
+    # otherwise had no way to tell that from a quotation never submitted, and
+    # the reason lived in an audit trail their screen does not show.
+    returned_by: str | None = None
+    returned_note: str | None = None
+
 
 class QuotationDetailResponse(BaseModel):
     success: bool
@@ -199,6 +205,9 @@ class DecisionRequest(BaseModel):
 class DecisionData(BaseModel):
     status: str
     stage: str | None
+
+    # "forward" | "back" | "stopped" - where the decision sent the quotation.
+    direction: str = "forward"
     complete: bool
 
 

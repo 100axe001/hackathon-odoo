@@ -28,6 +28,7 @@ from app.schemas.quotations import (
     StepRow,
 )
 from app.utils.approval import (
+    approval_util_close_chain,
     approval_util_current_step,
     approval_util_is_complete,
     record_audit,
@@ -63,6 +64,27 @@ def _conflict(message: str) -> HTTPException:
             success=False, error="Conflict", message=message
         ).model_dump(),
     )
+
+
+# "returnd" is what f"{decision}d" produced, and it reached the reviewer.
+_PAST_TENSE = {"approve": "approved", "return": "returned", "reject": "rejected"}
+
+_DIRECTION = {"approve": "forward", "return": "back", "reject": "stopped"}
+
+
+def _stage_label(quotation, step) -> str:
+    """Where the chain stands. An ended chain is not the same as a finished one.
+
+    Without the first two branches a returned or rejected quotation reported
+    "Complete", which is what an approved one reports.
+    """
+    if step is not None:
+        return step.required_role
+    if quotation.status == QuoteStatus.REJECTED:
+        return "Rejected"
+    if any(s.status == StepStatus.RETURNED for s in quotation.steps):
+        return "Returned for revision"
+    return "Complete"
 
 
 def _parse_id(raw: str) -> int:
@@ -126,7 +148,7 @@ def approval_detail(
             # Generated from the calculation, never hardcoded - PS section 5.
             explanation=pricing_util_explain(result),
             lines=flagged,
-            stage=step.required_role if step else "Complete",
+            stage=_stage_label(quotation, step),
             steps=[
                 StepRow(
                     role=s.required_role,
@@ -197,12 +219,18 @@ def decide(
         step.status = StepStatus.REJECTED
         quotation.status = QuoteStatus.REJECTED
         action = AuditAction.REJECT
+        # Nobody after this reviewer is waiting on anything any more.
+        approval_util_close_chain(quotation, StepStatus.REJECTED)
     else:
         step.status = StepStatus.RETURNED
         # Back to the rep to revise. Re-submitting rebuilds the chain from the
         # new risk level, so a smaller discount needs fewer reviewers.
         quotation.status = QuoteStatus.DRAFT
         action = AuditAction.RETURN
+        # And the reviewers after this one are no longer waiting: leaving them
+        # PENDING made a returned quotation report the next role as its stage,
+        # so the app said the deal had moved forward when it had gone back.
+        approval_util_close_chain(quotation, StepStatus.RETURNED)
 
     record_audit(
         db,
@@ -215,19 +243,23 @@ def decide(
 
     next_step = approval_util_current_step(quotation)
     logger.info(
-        "%s %sd %s -> %s",
+        "%s %s %s -> %s",
         user.full_name,
-        payload.decision,
+        _PAST_TENSE[payload.decision],
         quotation.number,
         quotation.status,
     )
 
     return DecisionResponse(
         success=True,
-        message=f"Quotation {payload.decision}d",
+        message=f"Quotation {_PAST_TENSE[payload.decision]}",
         data=DecisionData(
             status=quotation.status,
             stage=next_step.required_role if next_step else None,
+            # Which way the deal just moved. The screen used to infer this from
+            # the next stage being empty, which read a return as an approval by
+            # the last reviewer in the chain.
+            direction=_DIRECTION[payload.decision],
             complete=approval_util_is_complete(quotation),
         ),
     )

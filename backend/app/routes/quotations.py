@@ -57,6 +57,7 @@ from app.utils.approval import (
     approval_util_build_chain,
     approval_util_current_step,
     approval_util_needs_approval,
+    approval_util_returned_step,
     record_audit,
 )
 from app.utils.journey import journey_util_next, journey_util_stages
@@ -187,9 +188,10 @@ def list_quotations(
     )
 
 
-def _to_detail(quotation, lines) -> QuotationDetailData:
+def _to_detail(session: Session, quotation, lines) -> QuotationDetailData:
     """Detail payload including live margin - PS section 4 B3."""
     margin, margin_pct = margin_util_quotation(quotation.lines)
+    returned_by, returned_note = _returned_notice(session, quotation)
     return QuotationDetailData(
         id=f"q{quotation.id}",
         number=quotation.number,
@@ -201,7 +203,25 @@ def _to_detail(quotation, lines) -> QuotationDetailData:
         net_total=float(quotation.total_net_value or 0),
         status=quotation.status,
         risk_level=quotation.risk_level,
+        returned_by=returned_by,
+        returned_note=returned_note,
     )
+
+
+def _returned_notice(session: Session, quotation) -> tuple[str | None, str | None]:
+    """Who sent this quotation back and what they asked for, while it is back.
+
+    Only meaningful on a Draft: once it is resubmitted the chain is rebuilt, and
+    on anything further along the return is history rather than the thing the
+    rep has to act on.
+    """
+    if quotation.status != QuoteStatus.DRAFT:
+        return None, None
+    step = approval_util_returned_step(quotation)
+    if step is None:
+        return None, None
+    reviewer = db_get_user_by_id(session, step.acted_by)
+    return (reviewer.full_name if reviewer else "A reviewer"), step.comment
 
 
 def _line_rows(quotation) -> list[LineData]:
@@ -255,7 +275,7 @@ def create_quotation(
     return CreateQuotationResponse(
         success=True,
         message=f"{quotation.number} created",
-        data=_to_detail(quotation, []),
+        data=_to_detail(db, quotation, []),
     )
 
 
@@ -294,7 +314,7 @@ def get_quotation(
     return QuotationDetailResponse(
         success=True,
         message="Quotation retrieved",
-        data=_to_detail(quotation, lines),
+        data=_to_detail(db, quotation, lines),
     )
 
 
@@ -523,7 +543,7 @@ def add_line(
     return AddLineResponse(
         success=True,
         message=f"{product.name} added",
-        data=_to_detail(quotation, _line_rows(quotation)),
+        data=_to_detail(db, quotation, _line_rows(quotation)),
     )
 
 
