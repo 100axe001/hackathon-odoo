@@ -70,3 +70,46 @@ class AuditAction(StrEnum):
 class LineType(StrEnum):
     ONE_TIME = "ONE_TIME"
     RECURRING = "RECURRING"
+
+
+class FlagType(StrEnum):
+    STALLED = "STALLED"
+    DISCOUNT_ANOMALY = "DISCOUNT_ANOMALY"
+    DELIVERY_SLIPPAGE = "DELIVERY_SLIPPAGE"
+
+
+class FlagAction(StrEnum):
+    ESCALATED = "ESCALATED"
+    NUDGED = "NUDGED"
+
+
+class FulfilStatus(StrEnum):
+    NONE = "NONE"
+    SPLIT_SUGGESTED = "SPLIT_SUGGESTED"
+    SPLIT_ACCEPTED = "SPLIT_ACCEPTED"
+    OVERRIDDEN = "OVERRIDDEN"
+    SHIPPED = "SHIPPED"
+
+
+class BillingCycle(StrEnum):
+    WEEKLY = "Weekly"
+    MONTHLY = "Monthly"
+    QUARTERLY = "Quarterly"
+    YEARLY = "Yearly"
+
+
+class SubStatus(StrEnum):
+    ACTIVE = "Active"
+    PAUSED = "Paused"
+    CANCELLED = "Cancelled"
+
+
+class DocType(StrEnum):
+    INVOICE = "INVOICE"
+    CREDIT_NOTE = "CREDIT_NOTE"
+
+
+class InvoiceStatus(StrEnum):
+    UNPAID = "Unpaid"
+    PARTIAL = "Partial"
+    PAID = "Paid"

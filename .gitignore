@@ -1,0 +1,37 @@
+# python
+.venv/
+__pycache__/
+*.py[cod]
+.python-version
+.ruff_cache/
+.pytest_cache/
+
+# node
+node_modules/
+dist/
+.vite/
+
+# env
+.env
+.env.local
+
+# db
+*.sqlite
+*.db
+pgdata/
+
+# jupyter
+.ipynb_checkpoints/
+
+# os
+.DS_Store
+
+# agent instructions - local only, not shared with the repo
+AGENTS.md
+CLAUDE.md
+.claude/
+.agents/
+.cursor/
+
+# playwright screenshot output
+frontend/scripts/shots/

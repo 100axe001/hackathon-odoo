@@ -6,6 +6,23 @@ surfaces far away, as an unrelated query blowing up. Import them all in one
 place instead.
 """
 
-from app.models import identity  # noqa: F401
+from app.models import (  # noqa: F401
+    billing,
+    catalog,
+    config,
+    fulfillment,
+    health,
+    identity,
+    negotiation,
+    quotation,
+)
 
-__all__ = ["identity"]
+__all__ = [
+    "catalog",
+    "config",
+    "fulfillment",
+    "health",
+    "identity",
+    "negotiation",
+    "quotation",
+]
