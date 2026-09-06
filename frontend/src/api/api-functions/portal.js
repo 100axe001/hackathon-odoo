@@ -1,23 +1,15 @@
 import { apiGet, apiSend } from "../client";
 import { portalEndpoints } from "../apiEndpoints";
-import { MOCK_PORTAL_QUOTATION } from "../mocks";
 
 // Expected: [{id, number, status, total}]
 export async function loadPortalQuotations() {
-  try {
-    return await apiGet(portalEndpoints.list);
-  } catch {
-    return [];
-  }
+  return apiGet(portalEndpoints.list);
 }
 
-// Expected: { id, number, customer, status, total, lines: [...], comments: [...] }
+// Expected: { id, number, customer, status, total, can_act, blocked_reason,
+//             lines: [...], comments: [...] }
 export async function loadPortalQuotation(id) {
-  try {
-    return await apiGet(portalEndpoints.quotation(id));
-  } catch {
-    return MOCK_PORTAL_QUOTATION;
-  }
+  return apiGet(portalEndpoints.quotation(id));
 }
 
 // Expected: { status, counter_discount_pct, message }
@@ -38,4 +30,24 @@ export async function negotiate(id, counterDiscountPct, deliveryDate, note) {
 // negotiated terms and decided they need review again.
 export async function confirmQuotation(id) {
   return apiSend(portalEndpoints.confirm(id), "POST");
+}
+
+// Expected: [{id, number, status, total, fulfillment,
+//             shipments: [{warehouse, product, qty}]}]
+export async function loadPortalOrders() {
+  return apiGet(portalEndpoints.orders);
+}
+
+// Expected: { invoices: [{id, number, document, order, amount, paid,
+//                         balance_due, status, issue_date, due_date}],
+//             subscriptions: [{plan, cycle, qty, amount, next_bill, status}],
+//             total_outstanding }
+export async function loadPortalBilling() {
+  return apiGet(portalEndpoints.billing);
+}
+
+// Expected: { company, tier, contact_name, contact_email, open_quotations,
+//             orders, outstanding }
+export async function loadPortalProfile() {
+  return apiGet(portalEndpoints.profile);
 }

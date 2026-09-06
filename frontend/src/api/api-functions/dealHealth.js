@@ -1,12 +1,19 @@
-import { apiGet } from "../client";
+import { apiGet, apiSend } from "../client";
 import { dealHealthEndpoints } from "../apiEndpoints";
-import { MOCK_DEAL_HEALTH } from "../mocks";
 
 // Expected: { stalled: [], anomalies: [], slippage: [] }
 export async function loadDealHealth() {
-  try {
-    return await apiGet(dealHealthEndpoints.list);
-  } catch {
-    return MOCK_DEAL_HEALTH;
-  }
+  return apiGet(dealHealthEndpoints.list);
+}
+
+// Expected: { id, action }
+//
+// No mock fallback: an escalation that silently did nothing would be worse
+// than an error the manager can see.
+export async function escalateFlag(id) {
+  return apiSend(dealHealthEndpoints.escalate(id), "POST");
+}
+
+export async function nudgeFlag(id) {
+  return apiSend(dealHealthEndpoints.nudge(id), "POST");
 }

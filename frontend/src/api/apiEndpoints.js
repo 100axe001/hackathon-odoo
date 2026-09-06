@@ -18,6 +18,10 @@ export const quotationEndpoints = {
   lines: (id) => `/quotations/${enc(id)}/lines`,
   line: (id, lineId) => `/quotations/${enc(id)}/lines/${enc(lineId)}`,
   submit: (id) => `/quotations/${enc(id)}/submit`,
+  create: "/quotations",
+  stage: (id) => `/quotations/${enc(id)}/stage`,
+  journey: (id) => `/quotations/${enc(id)}/journey`,
+  messages: (id) => `/quotations/${enc(id)}/messages`,
 };
 
 export const approvalEndpoints = {
@@ -31,6 +35,7 @@ export const fulfillmentEndpoints = {
   orders: (status = "pending") => `/fulfillment/orders?status=${enc(status)}`,
   split: (id) => `/quotations/${enc(id)}/fulfillment-split`,
   accept: (id) => `/quotations/${enc(id)}/fulfillment/accept`,
+  restock: "/fulfillment/restock",
   override: (id) => `/quotations/${enc(id)}/fulfillment/override`,
 };
 
@@ -55,6 +60,7 @@ export const dealHealthEndpoints = {
 
 export const productEndpoints = {
   list: "/products",
+  create: "/products",
   detail: (id) => `/products/${enc(id)}`,
 };
 
@@ -62,6 +68,13 @@ export const adminEndpoints = {
   discountConfig: "/admin/discount-config",
   warehouses: "/admin/warehouses",
   subscriptionPlans: "/admin/subscription-plans",
+  customers: "/admin/customers",
+  approvalRules: "/admin/approval-rules",
+  upsellRule: "/admin/upsell-rule",
+  warehouse: (id) => `/admin/warehouses/${enc(id)}`,
+  subscriptionPlan: (id) => `/admin/subscription-plans/${enc(id)}`,
+  discountTier: (name) => `/admin/discount-tiers/${enc(name)}`,
+  categoryCeiling: (category) => `/admin/category-ceilings/${enc(category)}`,
 };
 
 export const portalEndpoints = {
@@ -69,6 +82,9 @@ export const portalEndpoints = {
   quotation: (id) => `/portal/quotations/${enc(id)}`,
   negotiate: (id) => `/portal/quotations/${enc(id)}/negotiate`,
   confirm: (id) => `/portal/quotations/${enc(id)}/confirm`,
+  orders: "/portal/orders",
+  billing: "/portal/billing",
+  profile: "/portal/profile",
 };
 
 export const authEndpoints = {
@@ -79,5 +95,14 @@ export const authEndpoints = {
 };
 
 export const reportEndpoints = {
-  summary: "/reports",
+  // Filters go to the server so the headline figures and the tables below them
+  // always describe the same slice of data.
+  summary: (params = {}) => {
+    const q = new URLSearchParams();
+    if (params.days) q.set("days", params.days);
+    if (params.rep) q.set("rep", params.rep);
+    if (params.category) q.set("category", params.category);
+    const qs = q.toString();
+    return qs ? `/reports?${qs}` : "/reports";
+  },
 };

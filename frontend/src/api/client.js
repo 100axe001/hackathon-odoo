@@ -20,10 +20,28 @@ async function request(path, options = {}) {
     if (!window.location.pathname.startsWith("/login")) {
       window.location.replace("/login");
     }
-    throw new Error("401 Unauthorized");
+    throw Object.assign(new Error("401 Unauthorized"), { status: 401 });
   }
 
-  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    // Carry the server's own wording through. It explains *why* - which line is
+    // over its ceiling, which endpoint owns a refused transition - and a bare
+    // "400 Bad Request" throws that away.
+    let detail = null;
+    try {
+      const body = await res.json();
+      detail = body?.detail?.message || body?.message || null;
+    } catch {
+      detail = null;
+    }
+    throw Object.assign(
+      new Error(detail || `${res.status} ${res.statusText}`),
+      {
+        status: res.status,
+        detail,
+      },
+    );
+  }
 
   const body = await res.json();
 
