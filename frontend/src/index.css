@@ -1,1 +1,31 @@
 @import "tailwindcss";
+
+/* Export PDF goes through the browser's print dialog, so the printed page has
+   to drop the chrome the reader cannot use on paper. */
+@media print {
+  header,
+  nav,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  main {
+    padding-top: 0 !important;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  table {
+    break-inside: avoid;
+  }
+
+  /* Browsers drop background fills when printing, which would flatten the
+     paid/outstanding bar and every status badge into blank space. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

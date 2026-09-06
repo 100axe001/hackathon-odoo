@@ -25,6 +25,9 @@ import { WarehousesScreen } from "@/pages/admin/WarehousesScreen";
 import { SubscriptionPlansScreen } from "@/pages/admin/SubscriptionPlansScreen";
 import { PortalIndexScreen } from "@/pages/portal/PortalIndexScreen";
 import { PortalNegotiationScreen } from "@/pages/portal/PortalNegotiationScreen";
+import { PortalOrdersScreen } from "@/pages/portal/PortalOrdersScreen";
+import { PortalBillingScreen } from "@/pages/portal/PortalBillingScreen";
+import { PortalProfileScreen } from "@/pages/portal/PortalProfileScreen";
 
 const INTERNAL = ["SALES_REP", "SALES_MANAGER", "FINANCE", "ADMIN"];
 
@@ -55,6 +58,9 @@ export const router = createBrowserRouter([
           { path: "/deal-health", element: <DealHealthScreen /> },
           { path: "/reports", element: <ReportsScreen /> },
           { path: "/products", element: <ProductsScreen /> },
+          // "new" is matched by :id and handled as a create mode. A static
+          // route for it would win the match and leave the screen without
+          // the param it reads to tell the two apart.
           { path: "/products/:id", element: <ProductDetailScreen /> },
           { path: "/admin/discount-config", element: <DiscountConfigScreen /> },
           { path: "/admin/warehouses", element: <WarehousesScreen /> },
@@ -81,6 +87,9 @@ export const router = createBrowserRouter([
             path: "/portal/quotations/:id",
             element: <PortalNegotiationScreen />,
           },
+          { path: "/portal/orders", element: <PortalOrdersScreen /> },
+          { path: "/portal/billing", element: <PortalBillingScreen /> },
+          { path: "/portal/profile", element: <PortalProfileScreen /> },
         ],
       },
     ],
