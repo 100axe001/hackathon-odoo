@@ -6,18 +6,25 @@ import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatPill } from "@/components/ui/StatPill";
 import { Td, Th, Tr } from "@/components/ui/Table";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { Transition } from "@/components/ui/Transition";
 import { loadSubscriptions } from "@/api/api-functions/subscriptions";
 
 export function SubscriptionsScreen() {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
+  const [loadError, setLoadError] = useState(null);
   useEffect(() => {
-    loadSubscriptions().then(setData);
+    loadSubscriptions().then(setData).catch(setLoadError);
   }, []);
   const active = data.filter((s) => s.status === "Active").length;
   const paused = data.filter((s) => s.status === "Paused").length;
   const cancelled = data.filter((s) => s.status === "Cancelled").length;
+  if (loadError)
+    return (
+      <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
+    );
+
   return (
     <Transition keyProp="subscriptions">
       <PageHeader

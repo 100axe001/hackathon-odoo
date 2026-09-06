@@ -5,17 +5,24 @@ import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatPill } from "@/components/ui/StatPill";
 import { Td, Th, Tr } from "@/components/ui/Table";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { Transition } from "@/components/ui/Transition";
 import { loadInvoices } from "@/api/api-functions/invoices";
 
 export function InvoicesScreen() {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
+  const [loadError, setLoadError] = useState(null);
   useEffect(() => {
-    loadInvoices().then(setData);
+    loadInvoices().then(setData).catch(setLoadError);
   }, []);
   const unpaid = data.filter((i) => i.status === "Unpaid").length;
   const paid = data.filter((i) => i.status === "Paid").length;
+  if (loadError)
+    return (
+      <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
+    );
+
   return (
     <Transition keyProp="invoices">
       <PageHeader title="Invoices" />

@@ -1,5 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -7,7 +8,11 @@ import { Td, Th, Tr } from "@/components/ui/Table";
 import { Toast } from "@/components/ui/Toast";
 import { Transition } from "@/components/ui/Transition";
 import { C } from "@/constants/theme";
-import { loadBillingDetail } from "@/api/api-functions/subscriptions";
+import {
+  cancelSubscription,
+  loadBillingDetail,
+  modifySubscription,
+} from "@/api/api-functions/subscriptions";
 
 export function BillingDetailScreen() {
   const { id } = useParams();
@@ -15,31 +20,44 @@ export function BillingDetailScreen() {
   const [toast, setToast] = useState("");
   const [showProration, setShowProration] = useState(false);
   const [newQty, setNewQty] = useState(2);
+  const [proration, setProration] = useState(null);
   useEffect(() => {
     loadBillingDetail(id).then(setDetail);
   }, [id]);
   if (!detail) return null;
 
-  // PS section 4 B7: mid-cycle proration. The rule is
-  // price_delta x (remaining_days / cycle_days). Days are illustrative here -
-  // the backend recomputes from real dates and is authoritative.
-  const CYCLE_DAYS = 30;
-  const DAYS_REMAINING = 15;
-  const line = detail.recurring_lines[0] || { amount: 0 };
-  const currentQty = 1;
-  const unitPrice = line.amount || 0;
-  const deltaQty = newQty - currentQty;
-
-  const proration = {
-    cycle_days: CYCLE_DAYS,
-    days_remaining: DAYS_REMAINING,
-    unit_price: unitPrice,
-    delta_qty: deltaQty,
-    amount: deltaQty * unitPrice * (DAYS_REMAINING / CYCLE_DAYS),
+  // The server prorates. The client used to assume a flat 30-day cycle with 15
+  // days left, which happened to look plausible and was never right: the period
+  // boundary and its real calendar length live on the subscription.
+  const applyChange = async () => {
+    try {
+      const result = await modifySubscription(id, newQty);
+      setProration(result);
+      setToast(
+        result.is_credit
+          ? `Credit note raised for $${Math.abs(result.amount).toFixed(2)}`
+          : `$${result.amount.toFixed(2)} charged for the remaining days`,
+      );
+      loadBillingDetail(id).then(setDetail);
+      setShowProration(false);
+    } catch {
+      setToast("Could not modify this subscription.");
+    }
   };
 
-  // Cancelling mid-cycle refunds the unused remainder as a credit note.
-  const cancellationCredit = -unitPrice * (DAYS_REMAINING / CYCLE_DAYS);
+  const cancel = async () => {
+    try {
+      const result = await cancelSubscription(id);
+      setToast(
+        result.credit_amount
+          ? `Cancelled. ${result.explanation} Credit note ${result.credit_note}.`
+          : "Subscription cancelled",
+      );
+      loadBillingDetail(id).then(setDetail);
+    } catch {
+      setToast("Could not cancel. It may already be cancelled.");
+    }
+  };
   return (
     <Transition keyProp={`bd-${id}`}>
       <PageHeader title={`Billing — ${detail.customer}`} />
@@ -91,6 +109,45 @@ export function BillingDetailScreen() {
           </tbody>
         </table>
       </Card>
+      {/* PS 4-B7 asks for the upcoming billing schedule, not just the next
+          date: a customer approving a subscription wants to see what they are
+          committing to across the term. */}
+      <Card className="mb-6">
+        <div className="text-base font-semibold mb-3" style={{ color: C.text }}>
+          Upcoming Billing Schedule
+        </div>
+        {(detail.schedule ?? []).length === 0 ? (
+          <div className="text-sm py-4" style={{ color: C.muted }}>
+            Nothing scheduled — this order has no recurring lines yet.
+          </div>
+        ) : (
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <Th>Due date</Th>
+                <Th>Note</Th>
+                <Th right>Amount</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {detail.schedule.map((row, i) => (
+                <Tr key={i}>
+                  <Td>{row.due_date}</Td>
+                  <Td>
+                    {row.is_prorated ? (
+                      <Badge status="Partial" label="Prorated" />
+                    ) : (
+                      <span style={{ color: C.muted }}>{row.note || "—"}</span>
+                    )}
+                  </Td>
+                  <Td right>${row.amount.toLocaleString()}</Td>
+                </Tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
+
       {showProration && (
         <Card className="mb-6">
           <div
@@ -101,7 +158,8 @@ export function BillingDetailScreen() {
           </div>
           <p className="text-sm mb-4" style={{ color: C.muted }}>
             Changing quantity mid-cycle is prorated: you are charged for the
-            remaining days of the period only.
+            remaining days of the period only. The exact figure is calculated
+            server-side against this subscription's real billing period.
           </p>
 
           <div className="flex items-end gap-6 flex-wrap">
@@ -121,32 +179,6 @@ export function BillingDetailScreen() {
               />
             </div>
 
-            <div className="text-sm" style={{ color: C.muted }}>
-              <div className="tabular-nums">
-                {proration.days_remaining} of {proration.cycle_days} days
-                remaining
-              </div>
-              <div className="tabular-nums">
-                {proration.delta_qty >= 0 ? "+" : ""}
-                {proration.delta_qty} x ${proration.unit_price} x{" "}
-                {proration.days_remaining}/{proration.cycle_days}
-              </div>
-            </div>
-
-            <div>
-              <div className="text-xs mb-0.5" style={{ color: C.muted }}>
-                {proration.amount >= 0 ? "Charge now" : "Credit note"}
-              </div>
-              <div
-                className="text-lg font-semibold tabular-nums"
-                style={{
-                  color: proration.amount >= 0 ? C.text : C.successText,
-                }}
-              >
-                ${Math.abs(proration.amount).toFixed(2)}
-              </div>
-            </div>
-
             <div className="flex gap-2 ml-auto">
               <Button
                 variant="secondary"
@@ -154,33 +186,34 @@ export function BillingDetailScreen() {
               >
                 Cancel
               </Button>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setShowProration(false);
-                  setToast(
-                    proration.amount >= 0
-                      ? `Subscription modified - $${proration.amount.toFixed(2)} charged`
-                      : `Subscription modified - credit note for $${Math.abs(proration.amount).toFixed(2)}`,
-                  );
-                }}
-              >
+              <Button variant="primary" onClick={applyChange}>
                 Apply Change
               </Button>
             </div>
           </div>
+
+          {proration && (
+            <div
+              className="mt-4 pt-4 text-sm"
+              style={{ borderTop: `1px solid ${C.border}`, color: C.muted }}
+            >
+              {proration.explanation}{" "}
+              <span
+                className="font-semibold tabular-nums"
+                style={{
+                  color: proration.is_credit ? C.successText : C.text,
+                }}
+              >
+                {proration.is_credit ? "Credit" : "Charge"} $
+                {Math.abs(proration.amount).toFixed(2)}
+              </span>
+            </div>
+          )}
         </Card>
       )}
 
       <div className="flex justify-end gap-3">
-        <Button
-          variant="destructive"
-          onClick={() =>
-            setToast(
-              `Subscription cancelled - credit note for $${Math.abs(cancellationCredit).toFixed(2)}`,
-            )
-          }
-        >
+        <Button variant="destructive" onClick={cancel}>
           Cancel Subscription
         </Button>
         <Button variant="secondary" onClick={() => setShowProration(true)}>
