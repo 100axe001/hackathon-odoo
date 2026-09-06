@@ -138,6 +138,10 @@ class InvoiceDetailData(BaseModel):
     paid_method: str | None = None
     recorded_by: str | None = None
 
+    # None until finance releases it. The customer's portal shows the document
+    # either way, but nobody internally could tell whether it had gone out.
+    sent_at: str | None = None
+
 
 class InvoiceDetailResponse(BaseModel):
     success: bool

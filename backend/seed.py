@@ -753,6 +753,7 @@ def _seed_hybrid_order(session, products, customers, plans, rep) -> None:
             for line in order.lines
             if line.line_type == LineType.ONE_TIME
         ],
+        sent=True,
     )
 
 
@@ -988,6 +989,7 @@ def _seed_volume_billing(session: Session, customers, plans, built) -> None:
                 }
                 for line in quotation.lines
             ],
+            sent=True,
         )
         # One paid, one part-paid, the rest outstanding.
         if index == 0:
@@ -1007,5 +1009,6 @@ def _seed_volume_billing(session: Session, customers, plans, built) -> None:
             doc_type=DocType.CREDIT_NOTE,
             line_type=LineType.RECURRING,
             reason="Goodwill credit, delayed delivery",
+            sent=True,
         )
     session.flush()

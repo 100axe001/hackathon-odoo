@@ -102,6 +102,13 @@ class Invoice(Base):
     )
 
     reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # When finance released it to the customer. Nullable because an invoice
+    # exists before it is sent, and "raised but not yet sent" is a real state
+    # finance needs to see rather than infer.
+    sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
     issue_date: Mapped[date] = mapped_column()
     due_date: Mapped[date] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(

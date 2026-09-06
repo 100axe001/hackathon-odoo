@@ -758,6 +758,7 @@ def _seed_invoices(
                 }
                 for line in quotation.lines
             ],
+            sent=True,
         )
         _apply_payment(invoice, index, finance)
 
@@ -784,6 +785,7 @@ def _seed_invoices(
                     "is_recurring": True,
                 }
             ],
+            sent=True,
         )
         _apply_payment(invoice, index + 1, finance)
 
@@ -805,6 +807,7 @@ def _seed_invoices(
                 "Duplicate charge reversed",
                 "Agreed post-sale price adjustment",
             ][index],
+            sent=True,
         )
     session.flush()
 

@@ -67,6 +67,7 @@ the route guard in the browser only decides what to render.
 | --- | --- | --- | --- |
 | `GET` | `/invoices` | Any internal |  |
 | `GET` | `/invoices/{invoice_id}` | Any internal |  |
+| `POST` | `/invoices/{invoice_id}/send` | Finance, admin | Release the document to the customer and stamp when it went. |
 | `POST` | `/invoices/{invoice_id}/record-payment` | Finance, Admin | Record a payment and update the status. PS section 9 step 8. |
 
 ## Deal Health

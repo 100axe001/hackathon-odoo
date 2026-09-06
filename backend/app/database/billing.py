@@ -76,6 +76,19 @@ def db_next_invoice_number(session: Session, prefix: str = "INV") -> str:
     return f"{prefix}-{3080 + count + 1}"
 
 
+def db_mark_invoice_sent(session: Session, invoice: Invoice) -> Invoice:
+    """Record that the document went to the customer.
+
+    Stamped rather than flagged: "sent on the 3rd" answers a chase-up, and a
+    boolean would not. Re-sending moves the date, which is the honest answer to
+    "when did they last get it".
+    """
+    invoice.sent_at = datetime.now(UTC)
+    session.commit()
+    session.refresh(invoice)
+    return invoice
+
+
 def db_create_invoice(
     session: Session,
     *,
@@ -87,6 +100,7 @@ def db_create_invoice(
     issue_date: date | None = None,
     due_date: date | None = None,
     reason: str | None = None,
+    sent: bool = False,
     lines: list[dict] | None = None,
 ) -> Invoice:
     """Create an invoice, or a credit note when doc_type says so.
@@ -95,7 +109,11 @@ def db_create_invoice(
     Invoice model for why it is not a table of its own.
     """
     issued = issue_date or date.today()
+    # Raised is not sent. A proration charge exists the moment a subscription
+    # changes; finance decides when it goes to the customer. The seeds pass
+    # sent=True because their documents are meant to be history.
     invoice = Invoice(
+        sent_at=datetime.now(UTC) if sent else None,
         number=db_next_invoice_number(
             session, "CN" if doc_type == DocType.CREDIT_NOTE else "INV"
         ),

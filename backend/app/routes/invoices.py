@@ -5,7 +5,12 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.database.billing import db_get_invoice, db_list_invoices, db_record_payment
+from app.database.billing import (
+    db_get_invoice,
+    db_list_invoices,
+    db_mark_invoice_sent,
+    db_record_payment,
+)
 from app.logging.setup_logging import get_logger
 from app.models.enums import DocType, FulfilStatus, InvoiceStatus, UserRole
 from app.models.identity import User
@@ -92,6 +97,7 @@ def _to_detail(invoice) -> InvoiceDetailData:
             )
         ),
         paid_at=invoice.paid_at.strftime("%b %d, %Y") if invoice.paid_at else None,
+        sent_at=invoice.sent_at.strftime("%b %d, %Y") if invoice.sent_at else None,
         paid_method=invoice.paid_method,
         recorded_by=invoice.recorder.full_name if invoice.recorder else None,
         lines=[
@@ -152,6 +158,39 @@ def get_invoice(
 
     return InvoiceDetailResponse(
         success=True, message="Invoice retrieved", data=_to_detail(invoice)
+    )
+
+
+@router.post(
+    "/{invoice_id}/send",
+    response_model=InvoiceDetailResponse,
+    responses={code: {"model": ErrorResponse} for code in (403, 404, 500)},
+)
+def send_invoice(
+    invoice_id: str,
+    db: Session = Depends(get_db),
+    user: User = Depends(require_finance),
+) -> InvoiceDetailResponse:
+    """Release the document to the customer.
+
+    Finance and admin only, the same separation that guards recording a
+    payment: the rep who sold the deal does not also decide when it is billed.
+    The customer reads it in their portal, so sending is a state change here
+    rather than an email this demo cannot actually put in an inbox.
+    """
+    invoice = db_get_invoice(db, _parse_id(invoice_id))
+    if invoice is None:
+        raise _not_found(f"No invoice {invoice_id}")
+
+    db_mark_invoice_sent(db, invoice)
+    logger.info(
+        "%s sent %s to %s", user.full_name, invoice.number, invoice.customer.name
+    )
+
+    return InvoiceDetailResponse(
+        success=True,
+        message=f"{invoice.number} sent to {invoice.customer.name}",
+        data=_to_detail(invoice),
     )
 
 
