@@ -336,6 +336,29 @@ def override_split(
             }
         )
 
+    # Whatever the human left uncovered is still owed. Without this, cutting a
+    # quantity in the override table made those units disappear: backordered
+    # read 0, the screen said every line was covered, and Mark Shipped was
+    # offered on an order that was short.
+    shippable = db_stocked_product_ids(db)
+    owed: dict[int, int] = {}
+    for line in quotation.lines:
+        if line.product_id in shippable:
+            owed[line.product_id] = owed.get(line.product_id, 0) + line.qty
+    for line in payload.allocations:
+        owed[line.product_id] = owed.get(line.product_id, 0) - line.qty
+
+    for product_id, short in owed.items():
+        if short > 0:
+            rows.append(
+                {
+                    "product_id": product_id,
+                    "warehouse_id": None,
+                    "qty": short,
+                    "shipping_cost": Decimal("0"),
+                }
+            )
+
     db_replace_allocations(db, quotation.id, rows, is_override=True)
     for line in payload.allocations:
         db_reserve_stock(db, line.warehouse_id, line.product_id, line.qty)
@@ -345,7 +368,9 @@ def override_split(
     logger.info("%s overrode the split for %s", user.full_name, quotation.number)
 
     return SplitResponse(
-        success=True, message="Manual split saved", data=_to_split_data(db, quotation)
+        success=True,
+        message="Manual split saved",
+        data=_to_split_data(db, quotation),
     )
 
 

@@ -173,10 +173,22 @@ def db_reservations_by_row(
     """
     # Joined explicitly: the allocation carries quotation_id but no relationship,
     # and adding one only for this read would widen the model for nothing.
+    # Committed splits only. A suggested split writes allocation rows but
+    # reserves nothing, so counting those claimed stock that no warehouse was
+    # actually holding - the column contradicted qty_reserved on every row.
     rows = session.execute(
         select(FulfillmentAllocation, Quotation)
         .join(Quotation, Quotation.id == FulfillmentAllocation.quotation_id)
-        .where(FulfillmentAllocation.warehouse_id.is_not(None))
+        .where(
+            FulfillmentAllocation.warehouse_id.is_not(None),
+            Quotation.fulfillment_status.in_(
+                [
+                    FulfilStatus.SPLIT_ACCEPTED,
+                    FulfilStatus.OVERRIDDEN,
+                    FulfilStatus.SHIPPED,
+                ]
+            ),
+        )
         .options(selectinload(Quotation.customer))
     ).all()
 
