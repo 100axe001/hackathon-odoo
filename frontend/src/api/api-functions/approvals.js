@@ -12,7 +12,11 @@ export async function loadApprovalDetail(id) {
   return apiGet(approvalEndpoints.detail(id));
 }
 
-// Expected: { status, stage, complete }
+// Expected: { status, stage, direction, complete }
+//
+// direction is "forward" | "back" | "stopped". Read it rather than inferring
+// from an empty stage: returning a quotation ends the chain too, and the screen
+// used to report that as the last reviewer approving.
 //
 // decision is "approve" | "return" | "reject". Like submit, this throws on
 // failure rather than falling back: a rejected decision (wrong role, or your

@@ -7,8 +7,11 @@ export async function loadQuotations() {
 }
 
 // Expected: { id, number, customer_name, price_list, status, risk_level,
-//             margin, margin_pct, net_total,
+//             margin, margin_pct, net_total, returned_by, returned_note,
 //             lines: [{id, product, qty, price, discount_pct, limit_pct, status}] }
+//
+// returned_by/returned_note are set only while a Draft is back with the rep
+// because a reviewer sent it there.
 export async function loadQuotationDetail(id) {
   return apiGet(quotationEndpoints.detail(id));
 }

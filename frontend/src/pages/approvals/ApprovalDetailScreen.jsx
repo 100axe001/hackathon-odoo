@@ -18,6 +18,33 @@ import {
   loadApprovalDetail,
 } from "@/api/api-functions/approvals";
 
+function outcomeFor(result, number) {
+  if (result.direction === "back") {
+    return {
+      tone: "warn",
+      text: `Returned. ${number} is back with the rep as a Draft - no one further
+        down the chain is waiting on it, and resubmitting re-scores it from
+        scratch.`.replace(/\s+/g, " "),
+    };
+  }
+  if (result.direction === "stopped") {
+    return {
+      tone: "danger",
+      text: `Rejected. ${number} is closed and the rest of the chain is cancelled.`,
+    };
+  }
+  if (result.complete) {
+    return {
+      tone: "success",
+      text: `Approved. Every reviewer has now signed off, so ${number} moves to fulfillment.`,
+    };
+  }
+  return {
+    tone: "success",
+    text: `Approved. ${number} now needs ${roleLabel(result.stage)} before it can proceed.`,
+  };
+}
+
 export function ApprovalDetailScreen() {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -53,8 +80,15 @@ export function ApprovalDetailScreen() {
   // Anything not yet approved is where the quotation is standing - a returned
   // or rejected step included, since neither has signed the deal off.
   const outstanding = steps.findIndex((s) => s.status !== "APPROVED");
-  const stageIndex =
-    outstanding === -1 ? stepLabels.length - 1 : outstanding + 1;
+  const sentBack = steps.some((s) => s.status === "RETURNED");
+  // A returned quotation is back with the rep, before the chain. Pointing the
+  // stepper at the reviewer who returned it drew the deal one step further
+  // along than it actually is.
+  const stageIndex = sentBack
+    ? 0
+    : outstanding === -1
+      ? stepLabels.length - 1
+      : outstanding + 1;
 
   // "approve" | "return" | "reject" - the values the API expects. The server
   // decides whether this caller may act: it rejects a rep approving their own
@@ -66,14 +100,12 @@ export function ApprovalDetailScreen() {
       // Reported in place, with the queue one click away. The old version put
       // this in a toast and navigated away from it after 1.2 seconds, so the
       // reviewer never learned what their own decision had done.
-      setOutcome({
-        tone: result.status === "Rejected" ? "danger" : "success",
-        text: result.complete
-          ? `Approved. Every reviewer has now signed off, so ${detail.quotation} moves to fulfillment.`
-          : result.stage
-            ? `Recorded. ${detail.quotation} now needs ${roleLabel(result.stage)} before it can proceed.`
-            : `${detail.quotation} is now ${result.status}. It goes back to the rep to revise and resubmit.`,
-      });
+      //
+      // Keyed on the direction the server reports, not on whether a next stage
+      // came back. Returning a quotation ends the chain, so the empty stage
+      // used to read as "approved by the last reviewer" and the banner
+      // announced the deal moving forward when it had just gone back.
+      setOutcome(outcomeFor(result, detail.quotation));
       setDecided(true);
       loadApprovalDetail(id)
         .then(setDetail)

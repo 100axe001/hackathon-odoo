@@ -230,6 +230,20 @@ export function QuotationDetailScreen() {
         </div>
       </div>
 
+      {/* A returned quotation used to arrive as an ordinary Draft. The rep had
+          no way to tell it apart from one never submitted, and the reviewer's
+          reason sat in an audit trail this screen does not show. */}
+      {!outcome && detail.returned_by && (
+        <div className="mb-6">
+          <InfoBanner tone="warn">
+            Sent back by {detail.returned_by} for revision
+            {detail.returned_note ? `: "${detail.returned_note}"` : "."} Adjust
+            the lines below and submit again — it is re-scored from scratch, so
+            a smaller discount may need fewer reviewers.
+          </InfoBanner>
+        </div>
+      )}
+
       {outcome && (
         <div className="mb-6">
           <InfoBanner
