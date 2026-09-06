@@ -35,3 +35,4 @@ CLAUDE.md
 
 # playwright screenshot output
 frontend/scripts/shots/
+.run/
