@@ -11,9 +11,10 @@ export function Th({ children, right }) {
   );
 }
 
-export function Td({ children, right, className = "" }) {
+export function Td({ children, right, className = "", colSpan }) {
   return (
     <td
+      colSpan={colSpan}
       className={`text-sm py-3 px-3 ${right ? "text-right tabular-nums" : ""} ${className}`}
       style={{ color: C.text }}
     >

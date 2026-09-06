@@ -40,11 +40,11 @@ export function ApprovalsScreen() {
             tone="neutral"
           />
         </div>
-        {/* The queue is everything awaiting a reviewer - there is no other
-            filter to offer, and the checkbox that claimed one never had a
-            second set of rows to switch to. */}
+        {/* The queue is what is waiting on you - there is no other filter to
+            offer, and the checkbox that claimed one never had a second set of
+            rows to switch to. */}
         <span className="text-sm" style={{ color: C.muted }}>
-          Everything currently awaiting a reviewer
+          Waiting on your review, plus your own quotations
         </span>
       </div>
       <Card>
@@ -79,6 +79,19 @@ export function ApprovalsScreen() {
                 </Td>
               </Tr>
             ))}
+            {data.length === 0 && (
+              <Tr>
+                {/* An empty table reads as a broken screen. Since the queue
+                    only shows what is waiting on this role, being empty is the
+                    normal state for anyone who is not the current reviewer. */}
+                <Td colSpan={5}>
+                  <span className="text-sm" style={{ color: C.muted }}>
+                    Nothing is waiting on you. A quotation appears here when its
+                    chain reaches your role.
+                  </span>
+                </Td>
+              </Tr>
+            )}
           </tbody>
         </table>
       </Card>
