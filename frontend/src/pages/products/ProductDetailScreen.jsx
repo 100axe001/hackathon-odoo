@@ -39,7 +39,9 @@ function toForm(detail) {
 const BLANK = {
   id: "new",
   name: "",
-  category: "Hardware",
+  // Empty, not "Hardware": a prefilled category is a claim about a product
+  // nobody has described yet, and it saves silently if left alone.
+  category: "",
   price: 0,
   cost_price: 0,
   unit: "Each",
@@ -92,6 +94,10 @@ export function ProductDetailScreen() {
   const save = async () => {
     if (!form.name.trim()) {
       setToast("Give the product a name first");
+      return;
+    }
+    if (!form.category.trim()) {
+      setToast("Give the product a category first");
       return;
     }
     try {
@@ -380,7 +386,10 @@ export function SubscriptionToggle({ isSub, cadence, onChange }) {
           <Select
             value={cadence ?? "Monthly"}
             onChange={(e) => onChange("recurring_cycle", e.target.value)}
-            options={["Monthly", "Quarterly", "Yearly"]}
+            /* The four cycles the billing engine prorates. Omitting Weekly
+               meant a weekly product rendered with no matching option and was
+               saved back as Monthly. */
+            options={["Weekly", "Monthly", "Quarterly", "Yearly"]}
           />
         </div>
       </div>

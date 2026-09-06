@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -18,23 +18,29 @@ import {
   loadQuotations,
 } from "@/api/api-functions/quotations";
 
+// Every status a quotation can hold, so nothing is invisible: the board used
+// to omit Rejected, and a rejected deal then belonged to no column at all.
 const STAGES = [
   "Draft",
   "Pending Approval",
   "Approved",
   "Negotiation",
   "Confirmed",
+  "Rejected",
 ];
 
 export function QuotationsScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [data, setData] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [filter, setFilter] = useState("All");
   // Board first: the wireframe's control reads "Switch to Table View", and PS
   // section 4 B1 lists Pipeline as a top-level view.
   const [view, setView] = useState("board");
-  const [picking, setPicking] = useState(false);
+  // The dashboard's "+ New Quotation" lands here asking for the picker, since
+  // creation needs a customer and that list lives on this screen.
+  const [picking, setPicking] = useState(Boolean(location.state?.newQuotation));
   const [starting, setStarting] = useState(false);
   const [toast, setToast] = useState("");
 

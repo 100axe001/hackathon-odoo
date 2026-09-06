@@ -6,7 +6,8 @@ export async function loadApprovals() {
   return apiGet(approvalEndpoints.list("pending"));
 }
 
-// Expected: { id, quotation, customer, blended_risk, customer_tier, lines, stage, audit_trail }
+// Expected: { id, quotation, customer, blended_risk, customer_tier, explanation,
+//             lines, stage, steps: [{role, status, acted_by}], audit_trail }
 export async function loadApprovalDetail(id) {
   return apiGet(approvalEndpoints.detail(id));
 }

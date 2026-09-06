@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { NAV_ITEMS } from "@/constants/nav";
 import { useSession } from "@/hooks/useSession";
 import { C } from "@/constants/theme";
+import { roleLabel } from "@/utils/roles";
 
 // Horizontal module bar, per the wireframe: brand on the left, one tab per
 // module, the active tab picked out in white. Active state comes from the URL,
@@ -14,14 +15,6 @@ function initials(name) {
     .slice(0, 2)
     .map((part) => part[0].toUpperCase())
     .join("");
-}
-
-function roleLabel(role) {
-  return String(role || "")
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
 }
 
 export function TopNav({ onReload, reloading }) {

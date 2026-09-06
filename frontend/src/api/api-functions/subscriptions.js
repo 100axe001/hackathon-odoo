@@ -6,7 +6,8 @@ export async function loadSubscriptions() {
   return apiGet(subscriptionEndpoints.list);
 }
 
-// Expected: { id, customer, one_time_lines, recurring_lines,
+// Expected: { id, customer, status, one_time_lines: [{product, qty, amount}],
+//             recurring_lines: [{plan, cycle, next_bill, amount, qty}],
 //             schedule: [{due_date, amount, is_prorated, note}] }
 export async function loadBillingDetail(id) {
   return apiGet(subscriptionEndpoints.billingDetail(id));

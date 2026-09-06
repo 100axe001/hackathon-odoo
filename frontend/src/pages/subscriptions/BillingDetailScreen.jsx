@@ -19,10 +19,15 @@ export function BillingDetailScreen() {
   const [detail, setDetail] = useState(null);
   const [toast, setToast] = useState("");
   const [showProration, setShowProration] = useState(false);
-  const [newQty, setNewQty] = useState(2);
+  // Starts at what is subscribed today. It used to start at 2, so applying
+  // without touching the box prorated a change to a quantity nobody chose.
+  const [newQty, setNewQty] = useState(null);
   const [proration, setProration] = useState(null);
   useEffect(() => {
-    loadBillingDetail(id).then(setDetail);
+    loadBillingDetail(id).then((d) => {
+      setDetail(d);
+      setNewQty(d.recurring_lines?.[0]?.qty ?? 1);
+    });
   }, [id]);
   if (!detail) return null;
 
@@ -93,6 +98,7 @@ export function BillingDetailScreen() {
             <tr>
               <Th>Plan</Th>
               <Th>Cycle</Th>
+              <Th right>Qty</Th>
               <Th>Next Bill Date</Th>
               <Th right>Amount</Th>
             </tr>
@@ -102,6 +108,7 @@ export function BillingDetailScreen() {
               <Tr key={i}>
                 <Td>{l.plan}</Td>
                 <Td>{l.cycle}</Td>
+                <Td right>{l.qty}</Td>
                 <Td>{l.next_bill}</Td>
                 <Td right>${l.amount.toLocaleString()}</Td>
               </Tr>
@@ -170,7 +177,7 @@ export function BillingDetailScreen() {
               <input
                 type="number"
                 min="0"
-                value={newQty}
+                value={newQty ?? ""}
                 onChange={(e) =>
                   setNewQty(Math.max(0, Number(e.target.value) || 0))
                 }

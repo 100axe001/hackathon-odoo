@@ -119,7 +119,9 @@ def list_products(
                     id=f"p{product.id}",
                     name=product.name,
                     category=product.category,
-                    variants=0,
+                    # The real count. A constant 0 made the catalogue's Variants
+                    # column and the stat card above it agree on a wrong number.
+                    variants=len(product.variants or []),
                     price=float(product.unit_price),
                     unit=product.unit,
                     tax=f"{float(product.tax_pct):g}%",

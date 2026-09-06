@@ -14,7 +14,6 @@ export function ApprovalsScreen() {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [loadError, setLoadError] = useState(null);
-  const [pendingOnly, setPendingOnly] = useState(true);
   useEffect(() => {
     loadApprovals().then(setData).catch(setLoadError);
   }, []);
@@ -23,26 +22,30 @@ export function ApprovalsScreen() {
       <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
     );
 
+  // Counted from the queue itself. The old Returned and Approved pills showed
+  // 2 and 11 whatever the data said, and the endpoint returns the pending set
+  // only, so there was nothing behind either number.
+  const atRisk = (level) => data.filter((a) => a.blended_risk === level).length;
+
   return (
     <Transition keyProp="approvals">
       <PageHeader title="Approvals" />
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-3">
           <StatPill label="Pending" count={data.length} tone="warn" />
-          <StatPill label="Returned" count={2} tone="neutral" />
-          <StatPill label="Approved" count={11} tone="success" />
-        </div>
-        <label
-          className="flex items-center gap-2 text-sm"
-          style={{ color: C.text }}
-        >
-          <input
-            type="checkbox"
-            checked={pendingOnly}
-            onChange={(e) => setPendingOnly(e.target.checked)}
+          <StatPill label="High risk" count={atRisk("HIGH")} tone="danger" />
+          <StatPill
+            label="Medium risk"
+            count={atRisk("MEDIUM")}
+            tone="neutral"
           />
-          Pending Only
-        </label>
+        </div>
+        {/* The queue is everything awaiting a reviewer - there is no other
+            filter to offer, and the checkbox that claimed one never had a
+            second set of rows to switch to. */}
+        <span className="text-sm" style={{ color: C.muted }}>
+          Everything currently awaiting a reviewer
+        </span>
       </div>
       <Card>
         <table className="w-full border-collapse">

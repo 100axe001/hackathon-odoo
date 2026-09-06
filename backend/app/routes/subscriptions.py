@@ -165,6 +165,7 @@ def billing_detail(
                     cycle=sub.plan.cycle,
                     next_bill=sub.next_bill_date.strftime("%b %d, %Y"),
                     amount=float(Decimal(str(sub.unit_price)) * Decimal(sub.qty)),
+                    qty=sub.qty,
                 )
             ],
             schedule=[

@@ -12,8 +12,10 @@ export function LoginScreen() {
   const navigate = useNavigate();
   const { signIn } = useSession();
   const [tab, setTab] = useState("Log In");
-  const [email, setEmail] = useState("rep@dealflow360.com");
-  const [password, setPassword] = useState("dealflow123");
+  // Empty rather than prefilled: the prefilled pair only existed on the demo
+  // seed, and on the large dataset it was a login that silently fails.
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);

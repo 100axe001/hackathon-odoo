@@ -12,19 +12,11 @@ import { Transition } from "@/components/ui/Transition";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { DealJourney } from "@/components/quotations/DealJourney";
 import { C } from "@/constants/theme";
+import { roleLabel } from "@/utils/roles";
 import {
   decideApproval,
   loadApprovalDetail,
 } from "@/api/api-functions/approvals";
-
-// SALES_MANAGER reads as a database value, not as a person's job.
-function roleName(role) {
-  return String(role)
-    .toLowerCase()
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
 
 export function ApprovalDetailScreen() {
   const navigate = useNavigate();
@@ -48,14 +40,21 @@ export function ApprovalDetailScreen() {
     (a, b) => (b.over_by > a.over_by ? b : a),
     detail.lines[0],
   );
-  // The API reports the stage as the role still owed an action, or "Complete".
-  // Map that onto the four labels the wireframe shows.
-  const STAGE_INDEX = {
-    SALES_MANAGER: 1,
-    FINANCE: 2,
-    Complete: 3,
-  };
-  const stageIndex = STAGE_INDEX[detail.stage] ?? 0;
+  // The chain is configuration, not a constant: an admin can route HIGH to
+  // Finance alone, or add a third reviewer. The API sends the steps this
+  // quotation actually has, so the stepper is built from them rather than from
+  // a fixed Sales Manager then Finance pair.
+  const steps = detail.steps ?? [];
+  const stepLabels = [
+    "Submitted",
+    ...steps.map((s) => roleLabel(s.role)),
+    "Confirmed",
+  ];
+  // Anything not yet approved is where the quotation is standing - a returned
+  // or rejected step included, since neither has signed the deal off.
+  const outstanding = steps.findIndex((s) => s.status !== "APPROVED");
+  const stageIndex =
+    outstanding === -1 ? stepLabels.length - 1 : outstanding + 1;
 
   // "approve" | "return" | "reject" - the values the API expects. The server
   // decides whether this caller may act: it rejects a rep approving their own
@@ -72,7 +71,7 @@ export function ApprovalDetailScreen() {
         text: result.complete
           ? `Approved. Every reviewer has now signed off, so ${detail.quotation} moves to fulfillment.`
           : result.stage
-            ? `Recorded. ${detail.quotation} now needs ${roleName(result.stage)} before it can proceed.`
+            ? `Recorded. ${detail.quotation} now needs ${roleLabel(result.stage)} before it can proceed.`
             : `${detail.quotation} is now ${result.status}. It goes back to the rep to revise and resubmit.`,
       });
       setDecided(true);
@@ -139,10 +138,7 @@ export function ApprovalDetailScreen() {
       </Card>
 
       <Card className="mb-6">
-        <Stepper
-          steps={["Submitted", "Sales Manager", "Finance", "Confirmed"]}
-          currentIndex={stageIndex}
-        />
+        <Stepper steps={stepLabels} currentIndex={stageIndex} />
       </Card>
 
       <Card className="mb-6">

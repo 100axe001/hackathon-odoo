@@ -13,7 +13,8 @@ export async function loadWarehouses() {
   return apiGet(adminEndpoints.warehouses);
 }
 
-// Expected: [{id, name, cycle, price, proration_enabled}]
+// Expected: [{id, name, cycle, price, proration_enabled, refund_window_days,
+//             cancellation_fee_pct}]
 export async function loadSubscriptionPlans() {
   return apiGet(adminEndpoints.subscriptionPlans);
 }

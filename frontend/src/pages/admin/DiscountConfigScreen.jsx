@@ -9,6 +9,7 @@ import { Toast } from "@/components/ui/Toast";
 import { Transition } from "@/components/ui/Transition";
 import { LoadFailed } from "@/components/ui/LoadFailed";
 import { C } from "@/constants/theme";
+import { roleLabel } from "@/utils/roles";
 import {
   deleteCategoryCeiling,
   deleteDiscountTier,
@@ -44,16 +45,30 @@ export function DiscountConfigScreen() {
     "No approval needed": [],
   };
 
+  // A chain the four options above cannot express - a third reviewer, or an
+  // admin in the chain - has to read as itself. Falling back to "Sales Manager
+  // only" showed a chain the server does not have, and saving wrote that back.
   const chainLabel = (roles) =>
     Object.keys(CHAINS).find(
       (k) => CHAINS[k].join(",") === (roles ?? []).join(","),
-    ) ?? "Sales Manager only";
+    ) ?? (roles ?? []).map(roleLabel).join(", then ");
+
+  const chainOptions = (roles) => {
+    const label = chainLabel(roles);
+    return label in CHAINS
+      ? Object.keys(CHAINS)
+      : [label, ...Object.keys(CHAINS)];
+  };
 
   const setChain = (level, label) =>
     setConfig((c) => ({
       ...c,
       chain: c.chain.map((row) =>
-        row.level === level ? { ...row, roles: CHAINS[label] } : row,
+        // Only a known label carries a chain to write; the row's own label is
+        // there to be displayed, not to overwrite the roles it describes.
+        row.level === level && CHAINS[label]
+          ? { ...row, roles: CHAINS[label] }
+          : row,
       ),
     }));
 
@@ -363,7 +378,7 @@ export function DiscountConfigScreen() {
                 <Select
                   value={chainLabel(row.roles)}
                   onChange={(e) => setChain(row.level, e.target.value)}
-                  options={Object.keys(CHAINS)}
+                  options={chainOptions(row.roles)}
                 />
               </div>
             ))}

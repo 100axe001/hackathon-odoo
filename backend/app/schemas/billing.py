@@ -32,6 +32,11 @@ class RecurringLine(BaseModel):
     next_bill: str
     amount: float
 
+    # What is subscribed today. Without it the modify form had to guess a
+    # starting quantity, and a guess there prorates against a number nobody
+    # chose.
+    qty: int = 1
+
 
 class ScheduleRow(BaseModel):
     due_date: str

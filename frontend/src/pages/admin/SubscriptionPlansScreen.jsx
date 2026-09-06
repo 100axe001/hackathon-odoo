@@ -108,7 +108,7 @@ export function SubscriptionPlansScreen() {
           </thead>
           <tbody>
             {rows.map((p, i) => (
-              <Tr key={p.id}>
+              <Tr key={p.id ?? `new-${i}`}>
                 <Td>
                   <input
                     value={p.name}

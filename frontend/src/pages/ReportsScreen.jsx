@@ -61,6 +61,17 @@ export function ReportsScreen() {
       ? data.by_status
       : data.by_status.filter((r) => r.status === status);
 
+  // Stage options come from the rows the server returned, not a list written
+  // here: the fixed one omitted Rejected, so a rejected deal could be counted
+  // in the table below and never selected in the filter above it.
+  const statusOptions = [
+    ANY_STATUS,
+    ...new Set([
+      ...data.by_status.map((r) => r.status),
+      ...(status === ANY_STATUS ? [] : [status]),
+    ]),
+  ];
+
   const scope = [
     period,
     rep === ANY_REP ? null : rep,
@@ -129,14 +140,7 @@ export function ReportsScreen() {
         <Select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          options={[
-            ANY_STATUS,
-            "Draft",
-            "Pending Approval",
-            "Approved",
-            "Negotiation",
-            "Confirmed",
-          ]}
+          options={statusOptions}
         />
         <Select
           value={category}

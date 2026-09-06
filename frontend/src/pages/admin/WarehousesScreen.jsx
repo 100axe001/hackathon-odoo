@@ -56,6 +56,14 @@ export function WarehousesScreen() {
         region: "",
         shipping_cost_weight: 1.0,
         active: true,
+        // Genuinely zero: nothing is stocked in a warehouse that does not
+        // exist yet. Leaving them out crashed the row that renders them.
+        product_lines: 0,
+        units_on_hand: 0,
+        units_reserved: 0,
+        units_available: 0,
+        below_reorder: 0,
+        fulfilled_lines: 0,
       },
     ]);
 
@@ -110,7 +118,7 @@ export function WarehousesScreen() {
           </thead>
           <tbody>
             {rows.map((w, i) => (
-              <Tr key={w.id}>
+              <Tr key={w.id ?? `new-${i}`}>
                 <Td>
                   <input
                     value={w.name}

@@ -34,7 +34,13 @@ export function ProductsScreen() {
       />
       <div className="grid grid-cols-3 gap-4 mb-6">
         <StatCard label="Total Products" value={data.length} />
-        <StatCard label="Pricelists" value="3" />
+        {/* Counted from the catalogue. The card here used to read "Pricelists:
+            3" - a constant, and one the list response cannot even support,
+            since price lists are per tier and live on the product detail. */}
+        <StatCard
+          label="Categories"
+          value={new Set(data.map((p) => p.category)).size}
+        />
         <StatCard
           label="Variants"
           value={data.reduce((s, p) => s + p.variants, 0)}

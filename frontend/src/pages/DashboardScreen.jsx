@@ -35,9 +35,14 @@ export function DashboardScreen() {
               >
                 View Approvals
               </Button>
+              {/* The quotations screen owns creation, because a quotation
+                  needs a customer before it exists. This used to open a
+                  hardcoded "q1", which was somebody else's deal. */}
               <Button
                 variant="primary"
-                onClick={() => navigate(`/quotations/${"q1"}`)}
+                onClick={() =>
+                  navigate("/quotations", { state: { newQuotation: true } })
+                }
               >
                 + New Quotation
               </Button>
