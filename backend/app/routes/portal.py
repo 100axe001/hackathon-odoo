@@ -419,6 +419,8 @@ def list_orders(
                     )
                 ),
                 fulfillment=_fulfillment_label(quotation, shipments),
+                rep=quotation.rep.full_name,
+                rep_email=quotation.rep.email,
                 shipments=shipments,
             )
         )

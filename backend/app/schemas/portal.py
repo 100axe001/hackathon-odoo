@@ -107,6 +107,13 @@ class PortalOrder(BaseModel):
     status: str
     total: float
     fulfillment: str
+
+    # Who to chase. "Partly on backorder" raises a question the portal could
+    # not answer, and the customer should not have to dig out an old email to
+    # find the person handling their order.
+    rep: str
+    rep_email: str
+
     shipments: list[PortalShipment]
 
 

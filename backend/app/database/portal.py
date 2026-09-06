@@ -96,7 +96,10 @@ def db_customer_orders(session: Session, user: User) -> list[Quotation]:
                 Quotation.customer_id == user.customer_id,
                 Quotation.status.in_([QuoteStatus.APPROVED, QuoteStatus.CONFIRMED]),
             )
-            .options(selectinload(Quotation.lines).selectinload(QuotationLine.product))
+            .options(
+                selectinload(Quotation.lines).selectinload(QuotationLine.product),
+                selectinload(Quotation.rep),
+            )
             .order_by(Quotation.id.desc())
         ).all()
     )
