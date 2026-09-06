@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { LoadFailed } from "@/components/ui/LoadFailed";
 import { C } from "@/constants/theme";
+import { money } from "@/utils/money";
 import { loadPortalQuotations } from "@/api/api-functions/portal";
 
 // Where a customer lands. The portal used to redirect to a hardcoded quotation
@@ -11,19 +13,19 @@ import { loadPortalQuotations } from "@/api/api-functions/portal";
 export function PortalIndexScreen() {
   const navigate = useNavigate();
   const [rows, setRows] = useState(null);
+  const [loadError, setLoadError] = useState(null);
 
   useEffect(() => {
-    loadPortalQuotations().then((list) => {
-      // One quotation is the common case, so go straight to it rather than
-      // making the customer click through a list of one.
-      if (list.length === 1) {
-        navigate(`/portal/quotations/${list[0].id}`, { replace: true });
-        return;
-      }
-      setRows(list);
-    });
+    // No auto-redirect: the portal now has Orders, Billing and Profile
+    // alongside this, so skipping the list would drop the customer into one
+    // quotation with no sense of what else is here.
+    loadPortalQuotations().then(setRows).catch(setLoadError);
   }, [navigate]);
 
+  if (loadError)
+    return (
+      <LoadFailed error={loadError} onRetry={() => window.location.reload()} />
+    );
   if (rows === null) return null;
 
   return (
@@ -61,7 +63,7 @@ export function PortalIndexScreen() {
                     className="text-sm tabular-nums"
                     style={{ color: C.muted }}
                   >
-                    ${q.total.toLocaleString()}
+                    {money(q.total)}
                   </div>
                 </div>
                 <Badge status={q.status} />
