@@ -99,108 +99,6 @@ export function FulfillmentScreen() {
         }
       />
       <Card className="mb-6">
-        <div className="text-base font-semibold mb-3" style={{ color: C.text }}>
-          Stock Overview
-        </div>
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <SortableTh
-                column="warehouse"
-                sort={stockSort}
-                onSort={sortStock}
-              >
-                Warehouse
-              </SortableTh>
-              <SortableTh column="product" sort={stockSort} onSort={sortStock}>
-                Product
-              </SortableTh>
-              <SortableTh
-                column="reserved_for"
-                sort={stockSort}
-                onSort={sortStock}
-              >
-                Reserved for
-              </SortableTh>
-              <Th right>In Stock</Th>
-              <SortableTh
-                column="reserved"
-                sort={stockSort}
-                onSort={sortStock}
-                right
-              >
-                Reserved
-              </SortableTh>
-              <SortableTh
-                column="available"
-                sort={stockSort}
-                onSort={sortStock}
-                right
-              >
-                Available
-              </SortableTh>
-              <Th right>Reorder at</Th>
-              <Th>Replenishment</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {stockRows.map((s, i) => (
-              <Tr key={i}>
-                <Td>{s.warehouse}</Td>
-                <Td>{s.product}</Td>
-                <Td>
-                  {/* The reserved figure alone says stock is spoken for but
-                      not by whom, which is the question on a shipping desk. */}
-                  {s.reserved_for.length === 0 ? (
-                    <span className="text-xs" style={{ color: C.muted }}>
-                      Unreserved
-                    </span>
-                  ) : (
-                    <div className="flex flex-col gap-0.5">
-                      {s.reserved_for.map((r) => (
-                        <span key={r.quotation} className="text-xs">
-                          <span style={{ color: C.text }}>{r.customer}</span>
-                          <span style={{ color: C.muted }}>
-                            {" "}
-                            {r.quotation} · {r.qty}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </Td>
-                <Td right>{s.in_stock}</Td>
-                <Td right>{s.reserved}</Td>
-                <Td
-                  right
-                  className={s.available === 0 ? "font-semibold" : ""}
-                  style={s.available === 0 ? { color: C.dangerText } : {}}
-                >
-                  {s.available}
-                </Td>
-                <Td right style={{ color: C.muted }}>
-                  {s.reorder_point > 0 ? s.reorder_point : "—"}
-                </Td>
-                <Td>
-                  {/* PS 4-A4: the replenishment rule, not just the count. A row
-                      at or below its reorder point is due for restock. */}
-                  {s.needs_restock ? (
-                    <Badge
-                      status="Pending"
-                      label={`Reorder ${s.reorder_qty}`}
-                    />
-                  ) : (
-                    <span className="text-xs" style={{ color: C.muted }}>
-                      {s.reorder_point > 0 ? "In policy" : "No rule set"}
-                    </span>
-                  )}
-                </Td>
-              </Tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
-      <Card>
         <div className="flex items-center justify-between mb-3">
           <div className="text-base font-semibold" style={{ color: C.text }}>
             Orders Awaiting Fulfillment
@@ -283,6 +181,114 @@ export function FulfillmentScreen() {
             ))}
           </tbody>
         </table>
+      </Card>
+      <Card>
+        <div className="text-base font-semibold mb-3" style={{ color: C.text }}>
+          Stock Overview
+        </div>
+        <div className="max-h-96 overflow-y-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr>
+                <SortableTh
+                  column="warehouse"
+                  sort={stockSort}
+                  onSort={sortStock}
+                >
+                  Warehouse
+                </SortableTh>
+                <SortableTh
+                  column="product"
+                  sort={stockSort}
+                  onSort={sortStock}
+                >
+                  Product
+                </SortableTh>
+                <SortableTh
+                  column="reserved_for"
+                  sort={stockSort}
+                  onSort={sortStock}
+                >
+                  Reserved for
+                </SortableTh>
+                <Th right>In Stock</Th>
+                <SortableTh
+                  column="reserved"
+                  sort={stockSort}
+                  onSort={sortStock}
+                  right
+                >
+                  Reserved
+                </SortableTh>
+                <SortableTh
+                  column="available"
+                  sort={stockSort}
+                  onSort={sortStock}
+                  right
+                >
+                  Available
+                </SortableTh>
+                <Th right>Reorder at</Th>
+                <Th>Replenishment</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {stockRows.map((s, i) => (
+                <Tr key={i}>
+                  <Td>{s.warehouse}</Td>
+                  <Td>{s.product}</Td>
+                  <Td>
+                    {/* The reserved figure alone says stock is spoken for but
+                      not by whom, which is the question on a shipping desk. */}
+                    {s.reserved_for.length === 0 ? (
+                      <span className="text-xs" style={{ color: C.muted }}>
+                        Unreserved
+                      </span>
+                    ) : (
+                      <div className="flex flex-col gap-0.5">
+                        {s.reserved_for.map((r) => (
+                          <span key={r.quotation} className="text-xs">
+                            <span style={{ color: C.text }}>{r.customer}</span>
+                            <span style={{ color: C.muted }}>
+                              {" "}
+                              {r.quotation} · {r.qty}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </Td>
+                  <Td right>{s.in_stock}</Td>
+                  <Td right>{s.reserved}</Td>
+                  <Td
+                    right
+                    className={s.available === 0 ? "font-semibold" : ""}
+                    style={s.available === 0 ? { color: C.dangerText } : {}}
+                  >
+                    {s.available}
+                  </Td>
+                  <Td right style={{ color: C.muted }}>
+                    {s.reorder_point > 0 ? s.reorder_point : "—"}
+                  </Td>
+                  <Td>
+                    {/* PS 4-A4: the replenishment rule, not just the count. A row
+                      at or below its reorder point is due for restock. */}
+                    {s.needs_restock ? (
+                      <Badge
+                        status="Pending"
+                        label={`Reorder ${s.reorder_qty}`}
+                      />
+                    ) : (
+                      <span className="text-xs" style={{ color: C.muted }}>
+                        {s.reorder_point > 0 ? "In policy" : "No rule set"}
+                      </span>
+                    )}
+                  </Td>
+                </Tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </Card>
     </Transition>
   );
